@@ -1,10 +1,10 @@
 from ctypes import ArgumentError
 import logging
 
-from numbers import Real
 from typing import Optional
 from dataclasses import dataclass, field
 
+from scipy import optimize
 import psychrolib as ps
 from iapws import IAPWS95
 
@@ -13,6 +13,7 @@ from iapws import IAPWS95
 ps.SetUnitSystem(ps.SI)
 
 SPECIFIC_HEAT_CAPACITY_LIQUID_WATER = 4191.0  # [J/kgK]
+
 
 # HACK test function
 def add(x: float, y: float) -> float:
@@ -126,11 +127,11 @@ class AirWaterFlow:
         # self.id = f'{self.phrase}_{self.word_type.name.lower()}'
         self.mass_flow_air = 0.0  # TODO
         self.mass_flow_water = 0.0  # TODO
-        self.enthalpie_flow = 0.0  # TODO
+        self.enthalpy_flow = 0.0  # TODO
 
 
-def air_water_enthalpie(HumRatio: float, TDryBulb: float, Pressure: float) -> float:
-    """specific enthalpie of an air water mixture at equilibrium"""
+def get_enthalpie_air_water_mix(HumRatio: float, TDryBulb: float, Pressure: float) -> float:
+    """specific enthalpy of an air water mixture at equilibrium"""
 
     sat_hum_ratio = ps.GetSatHumRatio(TDryBulb=TDryBulb, Pressure=Pressure)
 
@@ -144,7 +145,20 @@ def air_water_enthalpie(HumRatio: float, TDryBulb: float, Pressure: float) -> fl
         enthalpy_liquid = IAPWS95(T=ps.GetTKelvinFromTCelsius(TDryBulb), x=0).h * 1000
         return enthalpy_gas + (HumRatio - sat_hum_ratio) * enthalpy_liquid
     else:
-        raise ArgumentError("Enthalpie over ice not implemented!")
+        raise ArgumentError("Enthalpy over ice not implemented!")
+
+
+def get_temp_from_enthalpie_air_water_mix(
+    HumRatio: float, Enthalpy: float, Pressure: float
+) -> float:
+    """calculate temperature of an air water mix at equilibrium"""
+    def fun(t):
+        return Enthalpy - get_enthalpie_air_water_mix(HumRatio, t, Pressure)
+    sol = optimize.root(fun, x0=20)
+
+    if sol.success:
+        return sol.x[0]
+    raise ArithmeticError("Root not found: " + sol.message)
 
 
 # # logging.basicConfig(level=logging.DEBUG)
@@ -173,9 +187,19 @@ print(f"{xs=}")
 hs = ps.GetSatAirEnthalpy(t, p)
 print(f"{hs=} J/kg")
 
-h = air_water_enthalpie(0.0203, t, p)
+h = get_enthalpie_air_water_mix(0.0203, t, p)
 print(f"{h=} J/kg")
 
 h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
 
 print(f"{h_iap=} J/kg")
+
+x = 0.0034
+h= 10000
+
+t = get_temp_from_enthalpie_air_water_mix(x, h, p)
+print(f"{t=} °C")
+
+print(f"{ps.GetRelHumFromHumRatio(t,x,p)*100} %")
+h = get_enthalpie_air_water_mix(x, t, p)
+print(f"{h=} J/kg")
