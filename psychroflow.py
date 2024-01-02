@@ -20,36 +20,93 @@ STANDARD_PRESSURE = 101325  # Pa
 class HumidAirState:
     """class that describes a humid air state"""
 
-    Pressure: Optional[float] = None
-    HumRatio: Optional[float] = None
-    TDryBulb: Optional[float] = None
-    TWetBulb: Optional[float] = None
-    TDewPoint: Optional[float] = None
-    RelHum: Optional[float] = None
-    VapPres: Optional[float] = None
-    MoistAirEnthalpy: Optional[float] = None
-    MoistAirVolume: Optional[float] = None
-    DegreeOfSaturation: Optional[float] = None
+    Pressure: float
+    HumRatio: float
+    TDryBulb: float
+    TWetBulb: float
+    TDewPoint: float
+    RelHum: float
+    VapPres: float
+    MoistAirEnthalpy: float
+    MoistAirVolume: float
+    DegreeOfSaturation: float
 
     @classmethod
     def from_TDryBulb_RelHum(
         cls, TDryBulb: float, RelHum: float, Pressure: float = STANDARD_PRESSURE
     ) -> Self:
         """initiate HumidAirState with TDryBulb and RelHum"""
-        HumRatio = ps.GetHumRatioFromRelHum(TDryBulb, RelHum, Pressure), 
+
+        if 0 > RelHum > 1:
+            raise ValueError("Wet bulb temperature is above dry bulb temperature")
+
+        HumRatio = ps.GetHumRatioFromRelHum(TDryBulb, RelHum, Pressure)
         TWetBulb = ps.GetTWetBulbFromHumRatio(
-            TDryBulb, HumRatio, Pressure, 
+            TDryBulb,
+            HumRatio,
+            Pressure,
         )
         TDewPoint = ps.GetTDewPointFromHumRatio(
-            TDryBulb, HumRatio, Pressure, 
+            TDryBulb,
+            HumRatio,
+            Pressure,
         )
         VapPres = ps.GetVapPresFromHumRatio(HumRatio, Pressure)
-        MoistAirEnthalpy = ps.GetMoistAirEnthalpy(TDryBulb, HumRatio), 
+        MoistAirEnthalpy = ps.GetMoistAirEnthalpy(TDryBulb, HumRatio)
         MoistAirVolume = ps.GetMoistAirVolume(
-            TDryBulb, HumRatio, Pressure, 
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        DegreeOfSaturation = ps.GetDegreeOfSaturation(TDryBulb, HumRatio, Pressure)
+        return cls(
+            Pressure,
+            HumRatio,
+            TDryBulb,
+            TWetBulb,
+            TDewPoint,
+            RelHum,
+            VapPres,
+            MoistAirEnthalpy,
+            MoistAirVolume,
+            DegreeOfSaturation,
+        )
+
+    @classmethod
+    def from_TDryBul_TWetBulb(
+        cls, TDryBulb: float, TWetBulb: float, Pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        """initiate HumidAirState with TDryBulb and TWetBulb"""
+
+        if TWetBulb > TDryBulb:
+            raise ValueError("Wet bulb temperature is above dry bulb temperature")
+
+        HumRatio = ps.GetHumRatioFromTWetBulb(
+            TDryBulb,
+            TWetBulb,
+            Pressure,
+        )
+        TDewPoint = ps.GetTDewPointFromHumRatio(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        RelHum = ps.GetRelHumFromHumRatio(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        VapPres = ps.GetVapPresFromHumRatio(HumRatio, Pressure)
+        MoistAirEnthalpy = ps.GetMoistAirEnthalpy(TDryBulb, HumRatio)
+        MoistAirVolume = ps.GetMoistAirVolume(
+            TDryBulb,
+            HumRatio,
+            Pressure,
         )
         DegreeOfSaturation = ps.GetDegreeOfSaturation(
-            TDryBulb, HumRatio, Pressure 
+            TDryBulb,
+            HumRatio,
+            Pressure,
         )
         return cls(
             Pressure,
@@ -64,78 +121,84 @@ class HumidAirState:
             DegreeOfSaturation,
         )
 
-    # def __post_init__(self):
-    #     # list of all possible parameters
-    #     PARAMS_ALL = (
-    #         "HumRatio",
-    #         "TDryBulb",
-    #         "TWetBulb",
-    #         "TDewPoint",
-    #         "RelHum",
-    #         "VapPres",
-    #         "MoistAirEnthalpy",
-    #         "MoistAirVolume",
-    #         "DegreeOfSaturation",
-    #     )
+    @classmethod
+    def from_TDryBul_TDewPoint(
+        cls, TDryBulb: float, TDewPoint: float, Pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        """initiate HumidAirState with TDryBulb and TDewPoint"""
 
-    #     # list of booleans of which parameters have been set
-    #     set_params = [self.__dict__[p] is not None for p in PARAMS_ALL]
+        if TDewPoint > TDryBulb:
+            raise ValueError("Dry bulb temperature is above dew point temperature")
 
-    #     def check_params_set(params: list[str]) -> bool:
-    #         check_params = [p in params for p in PARAMS_ALL]
-    #         return set_params == check_params
+        HumRatio = ps.GetHumRatioFromTDewPoint(TDewPoint, Pressure)
+        TWetBulb = ps.GetTWetBulbFromHumRatio(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        RelHum = ps.GetRelHumFromHumRatio(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        VapPres = ps.GetVapPresFromHumRatio(HumRatio, Pressure)
+        MoistAirEnthalpy = ps.GetMoistAirEnthalpy(TDryBulb, HumRatio)
+        MoistAirVolume = ps.GetMoistAirVolume(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        DegreeOfSaturation = ps.GetDegreeOfSaturation(
+            TDryBulb,
+            HumRatio,
+            Pressure,
+        )
+        return cls(
+            Pressure,
+            HumRatio,
+            TDryBulb,
+            TWetBulb,
+            TDewPoint,
+            RelHum,
+            VapPres,
+            MoistAirEnthalpy,
+            MoistAirVolume,
+            DegreeOfSaturation,
+        )
 
-    #     if check_params_set(["TDryBulb", "TWetBulb"]):
-    #         self.HumRatio = ps.GetHumRatioFromTWetBulb(
-    #             self.TDryBulb, self.TWetBulb, self.Pressure, 
-    #         )
-    #         self.TDewPoint = ps.GetTDewPointFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
-    #         )
-    #         self.RelHum = ps.GetRelHumFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
-    #         )
-    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
-    #         self.MoistAirVolume = ps.GetMoistAirVolume(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
-    #         )
-    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
-    #         )
     #     elif check_params_set(["TDryBulb", "TDewPoint"]):
-    #         self.HumRatio = ps.GetHumRatioFromTDewPoint(self.TDewPoint, self.Pressure), 
+    #         self.HumRatio = ps.GetHumRatioFromTDewPoint(self.TDewPoint, self.Pressure),
     #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.RelHum = ps.GetRelHumFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
+    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio),
     #         self.MoistAirVolume = ps.GetMoistAirVolume(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #     elif check_params_set(["TDryBulb", "RelHum"]):
     #         self.HumRatio = ps.GetHumRatioFromRelHum(
-    #             self.TDryBulb, self.RelHum, self.Pressure, 
+    #             self.TDryBulb, self.RelHum, self.Pressure,
     #         )
     #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.TDewPoint = ps.GetTDewPointFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
+    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio),
     #         self.MoistAirVolume = ps.GetMoistAirVolume(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #             self.TDryBulb, self.HumRatio, self.Pressure,
     #         )
     #     else:
     #         raise ArgumentError("Invalid input Arguments for HumidAirState")
@@ -196,42 +259,45 @@ def get_temp_from_enthalpie_air_water_mix(
 # # logging.basicConfig(level=logging.DEBUG)
 
 
-# has = HumidAirState(TDryBulb=35, TDewPoint=20)
+# has = HumidAirState.from_TDryBul_TDewPoint(TDryBulb=35, TDewPoint=40)
+has = HumidAirState.from_TDryBul_TWetBulb(TDryBulb=35, TWetBulb=35)
 
-# print(has)
+print(has)
 
-# has = HumidAirState(TDryBulb=35, RelHum=0.8)
+has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.)
 
-# print(has)
+print(has1)
 
-t = 25
-p = 101325
+print(has1 == has)
 
-xs = ps.GetSatHumRatio(TDryBulb=t, Pressure=p)
-print(f"{xs=}")
+# t = 25
+# p = 101325
 
-# es = air_water_enthalpie(xs, t, p)
-# print(f"{es=}")
+# xs = ps.GetSatHumRatio(TDryBulb=t, Pressure=p)
+# print(f"{xs=}")
 
-# es = air_water_enthalpie(xs*1.1, t, p)
-# print(f"{es=}")
+# # es = air_water_enthalpie(xs, t, p)
+# # print(f"{es=}")
 
-hs = ps.GetSatAirEnthalpy(t, p)
-print(f"{hs=} J/kg")
+# # es = air_water_enthalpie(xs*1.1, t, p)
+# # print(f"{es=}")
 
-h = get_enthalpie_air_water_mix(0.0203, t, p)
-print(f"{h=} J/kg")
+# hs = ps.GetSatAirEnthalpy(t, p)
+# print(f"{hs=} J/kg")
 
-h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
+# h = get_enthalpie_air_water_mix(0.0203, t, p)
+# print(f"{h=} J/kg")
 
-print(f"{h_iap=} J/kg")
+# h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
 
-x = 0.0034
-h = 10000
+# print(f"{h_iap=} J/kg")
 
-t = get_temp_from_enthalpie_air_water_mix(x, h, p)
-print(f"{t=} °C")
+# x = 0.0034
+# h = 10000
 
-print(f"{ps.GetRelHumFromHumRatio(t,x,p)*100} %")
-h = get_enthalpie_air_water_mix(x, t, p)
-print(f"{h=} J/kg")
+# t = get_temp_from_enthalpie_air_water_mix(x, h, p)
+# print(f"{t=} °C")
+
+# print(f"{ps.GetRelHumFromHumRatio(t,x,p)*100} %")
+# h = get_enthalpie_air_water_mix(x, t, p)
+# print(f"{h=} J/kg")
