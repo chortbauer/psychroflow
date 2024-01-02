@@ -1,7 +1,7 @@
 from ctypes import ArgumentError
 import logging
 
-from typing import Optional
+from typing import Optional, Self
 from dataclasses import dataclass, field
 
 from scipy import optimize
@@ -12,20 +12,15 @@ from iapws import IAPWS95
 # set the psychrolib unit system
 ps.SetUnitSystem(ps.SI)
 
-SPECIFIC_HEAT_CAPACITY_LIQUID_WATER = 4191.0  # [J/kgK]
+STANDARD_PRESSURE = 101325  # Pa
 
 
-# HACK test function
-def add(x: float, y: float) -> float:
-    logging.debug(f"{x=}")
-    return x + y
-
-
-@dataclass(kw_only=True)
+# TODO create classmethods for differrent ways to initiate
+@dataclass
 class HumidAirState:
     """class that describes a humid air state"""
 
-    Pressure: float = 101325
+    Pressure: Optional[float] = None
     HumRatio: Optional[float] = None
     TDryBulb: Optional[float] = None
     TWetBulb: Optional[float] = None
@@ -36,81 +31,114 @@ class HumidAirState:
     MoistAirVolume: Optional[float] = None
     DegreeOfSaturation: Optional[float] = None
 
-    def __post_init__(self):
-        # list of all possible parameters
-        PARAMS_ALL = (
-            "HumRatio",
-            "TDryBulb",
-            "TWetBulb",
-            "TDewPoint",
-            "RelHum",
-            "VapPres",
-            "MoistAirEnthalpy",
-            "MoistAirVolume",
-            "DegreeOfSaturation",
+    @classmethod
+    def from_TDryBulb_RelHum(
+        cls, TDryBulb: float, RelHum: float, Pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        """initiate HumidAirState with TDryBulb and RelHum"""
+        HumRatio = ps.GetHumRatioFromRelHum(TDryBulb, RelHum, Pressure), 
+        TWetBulb = ps.GetTWetBulbFromHumRatio(
+            TDryBulb, HumRatio, Pressure, 
+        )
+        TDewPoint = ps.GetTDewPointFromHumRatio(
+            TDryBulb, HumRatio, Pressure, 
+        )
+        VapPres = ps.GetVapPresFromHumRatio(HumRatio, Pressure)
+        MoistAirEnthalpy = ps.GetMoistAirEnthalpy(TDryBulb, HumRatio), 
+        MoistAirVolume = ps.GetMoistAirVolume(
+            TDryBulb, HumRatio, Pressure, 
+        )
+        DegreeOfSaturation = ps.GetDegreeOfSaturation(
+            TDryBulb, HumRatio, Pressure 
+        )
+        return cls(
+            Pressure,
+            HumRatio,
+            TDryBulb,
+            TWetBulb,
+            TDewPoint,
+            RelHum,
+            VapPres,
+            MoistAirEnthalpy,
+            MoistAirVolume,
+            DegreeOfSaturation,
         )
 
-        # list of booleans of which parameters have been set
-        set_params = [self.__dict__[p] is not None for p in PARAMS_ALL]
+    # def __post_init__(self):
+    #     # list of all possible parameters
+    #     PARAMS_ALL = (
+    #         "HumRatio",
+    #         "TDryBulb",
+    #         "TWetBulb",
+    #         "TDewPoint",
+    #         "RelHum",
+    #         "VapPres",
+    #         "MoistAirEnthalpy",
+    #         "MoistAirVolume",
+    #         "DegreeOfSaturation",
+    #     )
 
-        def check_params_set(params: list[str]) -> bool:
-            check_params = [p in params for p in PARAMS_ALL]
-            return set_params == check_params
+    #     # list of booleans of which parameters have been set
+    #     set_params = [self.__dict__[p] is not None for p in PARAMS_ALL]
 
-        if check_params_set(["TDryBulb", "TWetBulb"]):
-            self.HumRatio = ps.GetHumRatioFromTWetBulb(
-                self.TDryBulb, self.TWetBulb, self.Pressure  # type: ignore
-            )
-            self.TDewPoint = ps.GetTDewPointFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.RelHum = ps.GetRelHumFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-            self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio)  # type: ignore
-            self.MoistAirVolume = ps.GetMoistAirVolume(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-        elif check_params_set(["TDryBulb", "TDewPoint"]):
-            self.HumRatio = ps.GetHumRatioFromTDewPoint(self.TDewPoint, self.Pressure)  # type: ignore
-            self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.RelHum = ps.GetRelHumFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-            self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio)  # type: ignore
-            self.MoistAirVolume = ps.GetMoistAirVolume(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-        elif check_params_set(["TDryBulb", "RelHum"]):
-            self.HumRatio = ps.GetHumRatioFromRelHum(
-                self.TDryBulb, self.RelHum, self.Pressure  # type: ignore
-            )
-            self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.TDewPoint = ps.GetTDewPointFromHumRatio(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-            self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio)  # type: ignore
-            self.MoistAirVolume = ps.GetMoistAirVolume(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-            self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-                self.TDryBulb, self.HumRatio, self.Pressure  # type: ignore
-            )
-        else:
-            raise ArgumentError("Invalid input Arguments for HumidAirState")
+    #     def check_params_set(params: list[str]) -> bool:
+    #         check_params = [p in params for p in PARAMS_ALL]
+    #         return set_params == check_params
+
+    #     if check_params_set(["TDryBulb", "TWetBulb"]):
+    #         self.HumRatio = ps.GetHumRatioFromTWetBulb(
+    #             self.TDryBulb, self.TWetBulb, self.Pressure, 
+    #         )
+    #         self.TDewPoint = ps.GetTDewPointFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.RelHum = ps.GetRelHumFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
+    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
+    #         self.MoistAirVolume = ps.GetMoistAirVolume(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #     elif check_params_set(["TDryBulb", "TDewPoint"]):
+    #         self.HumRatio = ps.GetHumRatioFromTDewPoint(self.TDewPoint, self.Pressure), 
+    #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.RelHum = ps.GetRelHumFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
+    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
+    #         self.MoistAirVolume = ps.GetMoistAirVolume(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #     elif check_params_set(["TDryBulb", "RelHum"]):
+    #         self.HumRatio = ps.GetHumRatioFromRelHum(
+    #             self.TDryBulb, self.RelHum, self.Pressure, 
+    #         )
+    #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.TDewPoint = ps.GetTDewPointFromHumRatio(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
+    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio), 
+    #         self.MoistAirVolume = ps.GetMoistAirVolume(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
+    #             self.TDryBulb, self.HumRatio, self.Pressure, 
+    #         )
+    #     else:
+    #         raise ArgumentError("Invalid input Arguments for HumidAirState")
 
 
 @dataclass
@@ -130,7 +158,9 @@ class AirWaterFlow:
         self.enthalpy_flow = 0.0  # TODO
 
 
-def get_enthalpie_air_water_mix(HumRatio: float, TDryBulb: float, Pressure: float) -> float:
+def get_enthalpie_air_water_mix(
+    HumRatio: float, TDryBulb: float, Pressure: float
+) -> float:
     """specific enthalpy of an air water mixture at equilibrium"""
 
     sat_hum_ratio = ps.GetSatHumRatio(TDryBulb=TDryBulb, Pressure=Pressure)
@@ -152,8 +182,10 @@ def get_temp_from_enthalpie_air_water_mix(
     HumRatio: float, Enthalpy: float, Pressure: float
 ) -> float:
     """calculate temperature of an air water mix at equilibrium"""
+
     def fun(t):
         return Enthalpy - get_enthalpie_air_water_mix(HumRatio, t, Pressure)
+
     sol = optimize.root(fun, x0=20)
 
     if sol.success:
@@ -195,7 +227,7 @@ h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
 print(f"{h_iap=} J/kg")
 
 x = 0.0034
-h= 10000
+h = 10000
 
 t = get_temp_from_enthalpie_air_water_mix(x, h, p)
 print(f"{t=} °C")
