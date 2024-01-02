@@ -168,19 +168,40 @@ class HumidAirState:
 
 
 @dataclass
-class AirFlow:
-    volume_flow_air: float
+class HumidAirFlow:
+    volume_flow: float
     humid_air_state: HumidAirState
     mass_flow_air: float = field(init=False)
     mass_flow_water: float = field(init=False)
     mass_flow: float = field(init=False)
-    enthalpie_flow: float = field(init=False)
+    enthalpy_flow: float = field(init=False)
 
     def __post_init__(self):
-        self.mass_flow_air = self.volume_flow_air / self.humid_air_state.MoistAirVolume
+        self.mass_flow_air = self.volume_flow / self.humid_air_state.MoistAirVolume
         self.mass_flow_water = self.humid_air_state.HumRatio * self.mass_flow_air
         self.mass_flow = self.mass_flow_air + self.mass_flow_water
         self.enthalpy_flow = self.humid_air_state.MoistAirEnthalpy * self.mass_flow_air
+
+
+@dataclass
+class WaterState:
+    temperature: float
+    pressure: float = field(default=STANDARD_PRESSURE)
+    iapws95: IAPWS95 = field(init=False)
+    density: float = field(init=False)
+    enthalpy: float = field(init=False)
+
+    def __post_init__(self):
+        self.iapws95 = IAPWS95(
+            T=ps.GetTKelvinFromTCelsius(self.temperature), P=self.pressure / 1e6
+        )
+
+        self.density = self.iapws95.rho
+        self.enthalpy = self.iapws95.h * 1e3
+
+    @classmethod
+    def from_iapws95(cls, iapws95: IAPWS95) -> Self:
+        return cls(iapws95.T, iapws95.P)
 
 
 def get_enthalpie_air_water_mix(
@@ -197,7 +218,7 @@ def get_enthalpie_air_water_mix(
     if TDryBulb > ps.FREEZING_POINT_WATER_SI:
         # gas over liquid water
         enthalpy_gas = ps.GetSatAirEnthalpy(TDryBulb=TDryBulb, Pressure=Pressure)
-        enthalpy_liquid = IAPWS95(T=ps.GetTKelvinFromTCelsius(TDryBulb), x=0).h * 1000
+        enthalpy_liquid = IAPWS95(T=ps.GetTKelvinFromTCelsius(TDryBulb), x=0).h * 1e3
         return enthalpy_gas + (HumRatio - sat_hum_ratio) * enthalpy_liquid
     else:
         raise ArgumentError("Enthalpy over ice not implemented!")
@@ -226,11 +247,15 @@ has = HumidAirState.from_TDryBul_TWetBulb(TDryBulb=35, TWetBulb=35)
 
 print(has)
 
-has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.0)
+# has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.0)
 
-print(has1)
+af = HumidAirFlow(1, has)
 
-print(has1 == has)
+print(af)
+
+ws = WaterState(10)
+
+print(ws)
 
 # t = 25
 # p = 101325
