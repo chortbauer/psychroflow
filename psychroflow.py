@@ -204,6 +204,18 @@ class WaterState:
         return cls(iapws95.T, iapws95.P)
 
 
+@dataclass
+class WaterFlow:
+    volume_flow: float
+    water_state: WaterState
+    mass_flow: float = field(init=False)
+    enthalpy_flow: float = field(init=False)
+
+    def __post_init__(self):
+        self.mass_flow = self.volume_flow * self.water_state.density
+        self.enthalpy_flow = self.water_state.enthalpy * self.mass_flow
+
+
 def get_enthalpie_air_water_mix(
     HumRatio: float, TDryBulb: float, Pressure: float
 ) -> float:
