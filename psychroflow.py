@@ -1,5 +1,7 @@
+from ast import Yield
 from ctypes import ArgumentError
 import logging
+import pprint
 
 from typing import Optional, Self
 from dataclasses import dataclass, field
@@ -8,11 +10,13 @@ from scipy import optimize
 import psychrolib as ps
 from iapws import IAPWS95
 
+PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
+pp = PrettyPrinter.pprint
 
 # set the psychrolib unit system
 ps.SetUnitSystem(ps.SI)
 
-STANDARD_PRESSURE = 101325  # Pa
+STANDARD_PRESSURE = 101_325  # Pa
 
 
 # TODO create classmethods for differrent ways to initiate
@@ -187,7 +191,7 @@ class HumidAirFlow:
 class WaterState:
     temperature: float
     pressure: float = field(default=STANDARD_PRESSURE)
-    iapws95: IAPWS95 = field(init=False)
+    iapws95: IAPWS95 = field(init=False, repr=False)
     density: float = field(init=False)
     enthalpy: float = field(init=False)
 
@@ -254,20 +258,24 @@ def get_temp_from_enthalpie_air_water_mix(
 # # logging.basicConfig(level=logging.DEBUG)
 
 
-# has = HumidAirState.from_TDryBul_TDewPoint(TDryBulb=35, TDewPoint=40)
+# # has = HumidAirState.from_TDryBul_TDewPoint(TDryBulb=35, TDewPoint=40)
 has = HumidAirState.from_TDryBul_TWetBulb(TDryBulb=35, TWetBulb=35)
 
-print(has)
+pp(has)
 
-# has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.0)
+# # has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.0)
 
-af = HumidAirFlow(1, has)
+# af = HumidAirFlow(1, has)
 
-print(af)
+# print(af)
 
 ws = WaterState(10)
 
-print(ws)
+pp(ws)
+
+# wf = WaterFlow(1, ws)
+
+# pp.pprint(wf)
 
 # t = 25
 # p = 101325
