@@ -166,59 +166,21 @@ class HumidAirState:
             DegreeOfSaturation,
         )
 
-    #     elif check_params_set(["TDryBulb", "TDewPoint"]):
-    #         self.HumRatio = ps.GetHumRatioFromTDewPoint(self.TDewPoint, self.Pressure),
-    #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.RelHum = ps.GetRelHumFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio),
-    #         self.MoistAirVolume = ps.GetMoistAirVolume(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #     elif check_params_set(["TDryBulb", "RelHum"]):
-    #         self.HumRatio = ps.GetHumRatioFromRelHum(
-    #             self.TDryBulb, self.RelHum, self.Pressure,
-    #         )
-    #         self.TWetBulb = ps.GetTWetBulbFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.TDewPoint = ps.GetTDewPointFromHumRatio(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.VapPres = ps.GetVapPresFromHumRatio(self.HumRatio, self.Pressure)
-    #         self.MoistAirEnthalpy = ps.GetMoistAirEnthalpy(self.TDryBulb, self.HumRatio),
-    #         self.MoistAirVolume = ps.GetMoistAirVolume(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #         self.DegreeOfSaturation = ps.GetDegreeOfSaturation(
-    #             self.TDryBulb, self.HumRatio, self.Pressure,
-    #         )
-    #     else:
-    #         raise ArgumentError("Invalid input Arguments for HumidAirState")
-
 
 @dataclass
-class AirWaterFlow:
-    """class that describes a combined flow of air and water"""
-
-    mass_flow: float
+class AirFlow:
+    volume_flow_air: float
     humid_air_state: HumidAirState
     mass_flow_air: float = field(init=False)
     mass_flow_water: float = field(init=False)
+    mass_flow: float = field(init=False)
     enthalpie_flow: float = field(init=False)
 
     def __post_init__(self):
-        # self.id = f'{self.phrase}_{self.word_type.name.lower()}'
-        self.mass_flow_air = 0.0  # TODO
-        self.mass_flow_water = 0.0  # TODO
-        self.enthalpy_flow = 0.0  # TODO
+        self.mass_flow_air = self.volume_flow_air / self.humid_air_state.MoistAirVolume
+        self.mass_flow_water = self.humid_air_state.HumRatio * self.mass_flow_air
+        self.mass_flow = self.mass_flow_air + self.mass_flow_water
+        self.enthalpy_flow = self.humid_air_state.MoistAirEnthalpy * self.mass_flow_air
 
 
 def get_enthalpie_air_water_mix(
@@ -264,7 +226,7 @@ has = HumidAirState.from_TDryBul_TWetBulb(TDryBulb=35, TWetBulb=35)
 
 print(has)
 
-has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.)
+has1 = HumidAirState.from_TDryBulb_RelHum(TDryBulb=35, RelHum=1.0)
 
 print(has1)
 
