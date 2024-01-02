@@ -6,11 +6,13 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 import psychrolib as ps
+from iapws import IAPWS95
 
 
 # set the psychrolib unit system
 ps.SetUnitSystem(ps.SI)
 
+SPECIFIC_HEAT_CAPACITY_LIQUID_WATER = 4191.0  # [J/kgK]
 
 # HACK test function
 def add(x: float, y: float) -> float:
@@ -127,15 +129,53 @@ class AirWaterFlow:
         self.enthalpie_flow = 0.0  # TODO
 
 
+def air_water_enthalpie(HumRatio: float, TDryBulb: float, Pressure: float) -> float:
+    """specific enthalpie of an air water mixture at equilibrium"""
+
+    sat_hum_ratio = ps.GetSatHumRatio(TDryBulb=TDryBulb, Pressure=Pressure)
+
+    if HumRatio <= sat_hum_ratio:
+        # only gas phase
+        return ps.GetMoistAirEnthalpy(TDryBulb=TDryBulb, HumRatio=HumRatio)
+
+    if TDryBulb > ps.FREEZING_POINT_WATER_SI:
+        # gas over liquid water
+        enthalpy_gas = ps.GetSatAirEnthalpy(TDryBulb=TDryBulb, Pressure=Pressure)
+        enthalpy_liquid = IAPWS95(T=ps.GetTKelvinFromTCelsius(TDryBulb), x=0).h * 1000
+        return enthalpy_gas + (HumRatio - sat_hum_ratio) * enthalpy_liquid
+    else:
+        raise ArgumentError("Enthalpie over ice not implemented!")
+
+
 # # logging.basicConfig(level=logging.DEBUG)
-has = HumidAirState(TDryBulb=35, TWetBulb=31.024634459874047)
 
-print(has)
 
-has = HumidAirState(TDryBulb=35, TDewPoint=20)
+# has = HumidAirState(TDryBulb=35, TDewPoint=20)
 
-print(has)
+# print(has)
 
-has = HumidAirState(TDryBulb=35, RelHum=0.8)
+# has = HumidAirState(TDryBulb=35, RelHum=0.8)
 
-print(has)
+# print(has)
+
+t = 25
+p = 101325
+
+xs = ps.GetSatHumRatio(TDryBulb=t, Pressure=p)
+print(f"{xs=}")
+
+# es = air_water_enthalpie(xs, t, p)
+# print(f"{es=}")
+
+# es = air_water_enthalpie(xs*1.1, t, p)
+# print(f"{es=}")
+
+hs = ps.GetSatAirEnthalpy(t, p)
+print(f"{hs=} J/kg")
+
+h = air_water_enthalpie(0.0203, t, p)
+print(f"{h=} J/kg")
+
+h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
+
+print(f"{h_iap=} J/kg")
