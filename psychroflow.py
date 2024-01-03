@@ -1,8 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+Created on 2024-01-02 07:09:48
+@author: orc
+
+Unit conventions:
+SI units are used for all physical values except temperatur for which °C is used.
+"""
 from ctypes import ArgumentError
 # import logging
 import pprint
 
-from typing import Optional, Self
+from typing import Self
 from dataclasses import dataclass, field
 
 from scipy import optimize
