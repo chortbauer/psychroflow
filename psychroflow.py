@@ -1,6 +1,5 @@
-from ast import Yield
 from ctypes import ArgumentError
-import logging
+# import logging
 import pprint
 
 from typing import Optional, Self
@@ -18,11 +17,9 @@ ps.SetUnitSystem(ps.SI)
 
 STANDARD_PRESSURE = 101_325  # Pa
 
-
-# TODO create classmethods for differrent ways to initiate
 @dataclass
 class HumidAirState:
-    """class that describes a humid air state"""
+    """a humid air state"""
 
     Pressure: float
     HumRatio: float
@@ -173,6 +170,7 @@ class HumidAirState:
 
 @dataclass
 class HumidAirFlow:
+    """A flow of air and water vapour"""
     volume_flow: float
     humid_air_state: HumidAirState
     mass_flow_air: float = field(init=False)
@@ -189,6 +187,7 @@ class HumidAirFlow:
 
 @dataclass
 class WaterState:
+    """A state of liquid water"""
     temperature: float
     pressure: float = field(default=STANDARD_PRESSURE)
     iapws95: IAPWS95 = field(init=False, repr=False)
@@ -205,11 +204,13 @@ class WaterState:
 
     @classmethod
     def from_iapws95(cls, iapws95: IAPWS95) -> Self:
+        """instantiate with IAPWS95"""
         return cls(iapws95.T, iapws95.P)
 
 
 @dataclass
 class WaterFlow:
+    """A flow of liquid water"""
     volume_flow: float
     water_state: WaterState
     mass_flow: float = field(init=False)
