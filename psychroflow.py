@@ -10,6 +10,7 @@ from ctypes import ArgumentError
 
 # import logging
 import pprint
+from math import isclose
 
 from typing import Self
 from dataclasses import dataclass, field
@@ -236,6 +237,99 @@ class WaterFlow:
         self.enthalpy_flow = self.water_state.enthalpy * self.mass_flow
 
 
+@dataclass
+class AirWaterFlow:
+    """A Flow of air and water"""
+
+    humid_air_flow: HumidAirFlow
+    water_flow: WaterFlow
+
+    def __post_init__(self):
+        # TODO allow no air
+        # TODO check pressure match
+        # check if there is liquid water
+        if not isclose(WaterFlow.mass_flow, 0):
+            # check if temperatures match
+            if not isclose(
+                self.humid_air_flow.humid_air_state.t_dry_bulb,
+                WaterFlow.water_state.temperature,
+            ):
+                raise ValueError("Temperature of air- and waterflow must be equal!")
+            # if there is liquid water the air has to be saturated
+            if not isclose(HumidAirFlow.humid_air_state.rel_hum, 1):
+                raise ValueError("Air over liquid water has to be saturated")
+
+    @classmethod
+    def from_humid_air_flow(cls, haf: HumidAirFlow) -> Self:
+        """air water flow with humid air only"""
+        return cls(haf, WaterFlow(0, WaterState(20)))
+
+    @classmethod
+    def from_water_flow(cls, wf: WaterFlow) -> Self:
+        """air water flow with liquid water only"""
+        return cls(HumidAirFlow(0, HumidAirState.from_t_dry_bulb_rel_hum(20, 0)), wf)
+
+    @classmethod
+    def from_m_air_m_water_total_enthalpy(
+        cls, m_air: float, m_water: float, total_enthalpy: float, pressure: float
+    ) -> Self:
+        """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
+        hum_ratio = m_water / m_air
+        t_dry_bulb = get_temp_from_enthalpy_air_water_mix(
+            hum_ratio, total_enthalpy, pressure
+        )
+        sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+
+        if hum_ratio <= sat_hum_ratio:
+            # gas phase only
+            has = HumidAirState.from_t_dry_bulb_rel_hum(
+                t_dry_bulb, hum_ratio / sat_hum_ratio, pressure
+            )
+            volume_flow = m_air / has.moist_air_volume
+            return cls.from_humid_air_flow(
+                HumidAirFlow(
+                    volume_flow,
+                    has,
+                )
+            )
+        # gas phase and liquid phase
+        has = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
+        volume_flow_gas = m_air * has.moist_air_volume
+        haf = HumidAirFlow(volume_flow_gas, has)
+        ws = WaterState(t_dry_bulb, pressure)
+        volume_flow_liquid = (hum_ratio - sat_hum_ratio) * m_air / ws.density
+        wf = WaterFlow(volume_flow_liquid, ws)
+        return cls(haf, wf)
+
+    @classmethod
+    def from_mixing_two_humid_air_flows(
+        cls, haf_in_1: HumidAirFlow, haf_in_2: HumidAirFlow
+    ) -> Self:
+        """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
+        m_air = haf_in_1.mass_flow_air + haf_in_2.mass_flow_air
+        m_water = haf_in_1.mass_flow_water + haf_in_2.mass_flow_water
+        total_enthalpy = haf_in_1.enthalpy_flow + haf_in_2.enthalpy_flow
+        if isclose(
+            haf_in_1.humid_air_state.pressure, haf_in_2.humid_air_state.pressure
+        ):
+            pressure = haf_in_1.humid_air_state.pressure
+            return cls.from_m_air_m_water_total_enthalpy(
+                m_air, m_water, total_enthalpy, pressure
+            )
+        raise ValueError("The pressure of the mixing air streams must be equal")
+
+    @classmethod
+    def from_mixing_air_water(cls, haf_in: HumidAirFlow, wf_in: WaterFlow) -> Self:
+        """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
+        m_air = haf_in.mass_flow_air
+        m_water = haf_in.mass_flow_water + wf_in.mass_flow
+        total_enthalpy = haf_in.enthalpy_flow + wf_in.enthalpy_flow
+        pressure = haf_in.humid_air_state.pressure
+        return cls.from_m_air_m_water_total_enthalpy(
+            m_air, m_water, total_enthalpy, pressure
+        )
+
+
 def get_total_enthalpy_air_water_mix(
     hum_ratio: float, t_dry_bulb: float, pressure: float
 ) -> float:
@@ -283,9 +377,9 @@ def get_temp_from_enthalpy_air_water_mix(
 
 
 # # has = HumidAirState.from_TDryBul_TDewPoint(t_dry_bulb=35, t_dew_point=40)
-has = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=35)
+has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=35)
 
-pp(has)
+pp(has1)
 
 # # has1 = HumidAirState.from_TDryBulb_RelHum(t_dry_bulb=35, rel_hum=1.0)
 
@@ -293,9 +387,9 @@ pp(has)
 
 # print(af)
 
-ws = WaterState(10)
+ws1 = WaterState(10)
 
-pp(ws)
+pp(ws1)
 
 # wf = WaterFlow(1, ws)
 
