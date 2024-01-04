@@ -377,19 +377,16 @@ def get_temp_from_enthalpy_air_water_mix(
 
 
 # # has = HumidAirState.from_TDryBul_TDewPoint(t_dry_bulb=35, t_dew_point=40)
-has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=35)
+has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=20)
+haf1 = HumidAirFlow(1, has1)
+pp(haf1)
 
-pp(has1)
+has2 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=20)
+haf2 = HumidAirFlow(2, has2)
+pp(haf2)
 
-# # has1 = HumidAirState.from_TDryBulb_RelHum(t_dry_bulb=35, rel_hum=1.0)
-
-# af = HumidAirFlow(1, has)
-
-# print(af)
-
-ws1 = WaterState(10)
-
-pp(ws1)
+awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
+# pp(awf)
 
 # wf = WaterFlow(1, ws)
 
