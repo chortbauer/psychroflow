@@ -134,7 +134,7 @@ class HumidAirState:
         )
 
     @classmethod
-    def from_t_dry_bulb__t_dew_point(
+    def from_t_dry_bulb_t_dew_point(
         cls, t_dry_bulb: float, t_dew_point: float, pressure: float = STANDARD_PRESSURE
     ) -> Self:
         """initiate HumidAirState with t_dry_bulb and t_dew_point"""
