@@ -17,7 +17,6 @@ from dataclasses import dataclass, field
 
 from scipy import optimize
 import psychrolib as ps
-from iapws import IAPWS95
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
@@ -205,22 +204,12 @@ class WaterState:
 
     temperature: float
     pressure: float = field(default=STANDARD_PRESSURE)
-    iapws95: IAPWS95 = field(init=False, repr=False)
     density: float = field(init=False)
     enthalpy: float = field(init=False)
 
     def __post_init__(self):
-        self.iapws95 = IAPWS95(
-            T=ps.GetTKelvinFromTCelsius(self.temperature), P=self.pressure / 1e6
-        )
-
-        self.density = self.iapws95.rho
-        self.enthalpy = self.iapws95.h * 1e3
-
-    @classmethod
-    def from_iapws95(cls, iapws95: IAPWS95) -> Self:
-        """instantiate with IAPWS95"""
-        return cls(iapws95.T, iapws95.P)
+        self.density = get_density_water(self.temperature)
+        self.enthalpy = get_enthalpy_water(self.temperature)
 
 
 @dataclass
@@ -248,16 +237,17 @@ class AirWaterFlow:
         # TODO allow no air
         # TODO check pressure match
         # check if there is liquid water
-        if not isclose(WaterFlow.mass_flow, 0):
-            # check if temperatures match
-            if not isclose(
-                self.humid_air_flow.humid_air_state.t_dry_bulb,
-                WaterFlow.water_state.temperature,
-            ):
-                raise ValueError("Temperature of air- and waterflow must be equal!")
-            # if there is liquid water the air has to be saturated
-            if not isclose(HumidAirFlow.humid_air_state.rel_hum, 1):
-                raise ValueError("Air over liquid water has to be saturated")
+        # if not isclose(WaterFlow.mass_flow, 0):
+        #     # check if temperatures match
+        #     if not isclose(
+        #         self.humid_air_flow.humid_air_state.t_dry_bulb,
+        #         WaterFlow.water_state.temperature,
+        #     ):
+        #         raise ValueError("Temperature of air- and waterflow must be equal!")
+        #     # if there is liquid water the air has to be saturated
+        #     if not isclose(HumidAirFlow.humid_air_state.rel_hum, 1):
+        #         raise ValueError("Air over liquid water has to be saturated")
+        pass
 
     @classmethod
     def from_humid_air_flow(cls, haf: HumidAirFlow) -> Self:
@@ -276,7 +266,7 @@ class AirWaterFlow:
         """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
         hum_ratio = m_water / m_air
         t_dry_bulb = get_temp_from_enthalpy_air_water_mix(
-            hum_ratio, total_enthalpy, pressure
+            hum_ratio, total_enthalpy / (m_air + m_water), pressure
         )
         sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
 
@@ -330,6 +320,54 @@ class AirWaterFlow:
         )
 
 
+def get_density_water(t: float) -> float:
+    """
+    [1] C. O. Popiel und J. Wojtkowiak,
+    Simple Formulas for Thermophysical Properties of Liquid Water
+    for Heat Transfer Calculations (from 0°C to 150°C)“,
+    Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87–101, Jan. 1998, doi: 10.1080/01457639808939929.
+    """
+    if 0.01 > t or 150 < t:
+        raise ValueError("Temperature range: 0.01 °C < T < 150 °C")
+
+    rho_c = 322
+    b1 = 1.99274064
+    b2 = 1.09965342
+    b3 = -0.510839303
+    b4 = -1.75493479
+    b5 = -45.5170352
+    b6 = -6.74694450e5
+    return rho_c * (
+        1
+        + b1 * t ** (1 / 3)
+        + b2 * t ** (2 / 3)
+        + b3 * t ** (5 / 3)
+        + b4 * t ** (16 / 3)
+        + b5 * t ** (43 / 3)
+        + b6 * t ** (110 / 3)
+    )
+
+
+def get_enthalpy_water(t: float) -> float:
+    """
+    [1] C. O. Popiel und J. Wojtkowiak,
+    Simple Formulas for Thermophysical Properties of Liquid Water
+    for Heat Transfer Calculations (from 0°C to 150°C)“,
+    Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87–101, Jan. 1998, doi: 10.1080/01457639808939929.
+    """
+    if 0.01 > t or 150 < t:
+        raise ValueError("Temperature range: 0.01 °C < T < 150 °C")
+
+    d1 = -2.844699e-2
+    d2 = 4.211925
+    d3 = -1.017034e-3
+    d4 = 1.311054e-5
+    d5 = -6.756469e-8
+    d6 = 1.724481e-10
+
+    return (d1 + d2 * t + d3 * t**2 + d4 * t**3 + d5 * t**4 + d6 * t**5) * 1e3
+
+
 def get_total_enthalpy_air_water_mix(
     hum_ratio: float, t_dry_bulb: float, pressure: float
 ) -> float:
@@ -345,7 +383,7 @@ def get_total_enthalpy_air_water_mix(
     if t_dry_bulb > ps.FREEZING_POINT_WATER_SI:
         # gas over liquid water
         enthalpy_gas = ps.GetSatAirEnthalpy(t_dry_bulb, pressure) / (1 + sat_hum_ratio)
-        enthalpy_liquid = IAPWS95(T=ps.GetTKelvinFromTCelsius(t_dry_bulb), x=0).h * 1e3
+        enthalpy_liquid = get_enthalpy_water(t_dry_bulb)
         return (
             enthalpy_gas
             + (1 + sat_hum_ratio)
@@ -366,27 +404,24 @@ def get_temp_from_enthalpy_air_water_mix(
     def fun(t):
         return total_enthalpy - get_total_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    sol = optimize.root(fun, x0=20)
+    sol = optimize.root_scalar(fun, bracket=[0.01, 150], method="brentq")
 
-    if sol.success:
-        return sol.x[0]
+    if sol.converged:
+        return sol.root
     raise ArithmeticError("Root not found: " + sol.message)
 
 
-# # logging.basicConfig(level=logging.DEBUG)
-
-
 # # has = HumidAirState.from_TDryBul_TDewPoint(t_dry_bulb=35, t_dew_point=40)
-has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=20)
+has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=40, rel_hum=0.5)
 haf1 = HumidAirFlow(1, has1)
 pp(haf1)
 
-has2 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=35, t_wet_bulb=20)
+has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.5)
 haf2 = HumidAirFlow(2, has2)
 pp(haf2)
 
 awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
-# pp(awf)
+pp(awf)
 
 # wf = WaterFlow(1, ws)
 
