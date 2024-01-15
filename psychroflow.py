@@ -232,32 +232,56 @@ class AirWaterFlow:
 
     humid_air_flow: HumidAirFlow
     water_flow: WaterFlow
+    dry: bool = field(init=False)
 
     def __post_init__(self):
         # TODO allow no air
-        # TODO check pressure match
-        # check if there is liquid water
-        # if not isclose(WaterFlow.mass_flow, 0):
-        #     # check if temperatures match
-        #     if not isclose(
-        #         self.humid_air_flow.humid_air_state.t_dry_bulb,
-        #         WaterFlow.water_state.temperature,
-        #     ):
-        #         raise ValueError("Temperature of air- and waterflow must be equal!")
-        #     # if there is liquid water the air has to be saturated
-        #     if not isclose(HumidAirFlow.humid_air_state.rel_hum, 1):
-        #         raise ValueError("Air over liquid water has to be saturated")
-        pass
+        # check if temperatures match
+        if not isclose(
+            self.humid_air_flow.humid_air_state.t_dry_bulb,
+            self.water_flow.water_state.temperature,
+        ):
+            raise ValueError("Temperature of air- and waterflow must be equal!")
+
+        # check pressure match
+        if not isclose(
+            self.humid_air_flow.humid_air_state.pressure,
+            self.water_flow.water_state.pressure,
+        ):
+            raise ValueError("Pressure of air- and waterflow must be equal!")
+
+        # if liquid water
+        if not isclose(self.water_flow.mass_flow, 0):
+            self.dry = True
+            # if there is liquid water the air has to be saturated
+            if not isclose(self.humid_air_flow.humid_air_state.rel_hum, 1):
+                raise ValueError("Air over liquid water has to be saturated")
 
     @classmethod
     def from_humid_air_flow(cls, haf: HumidAirFlow) -> Self:
         """air water flow with humid air only"""
-        return cls(haf, WaterFlow(0, WaterState(20)))
+        return cls(
+            haf,
+            WaterFlow(
+                0,
+                WaterState(
+                    haf.humid_air_state.t_dry_bulb, haf.humid_air_state.pressure
+                ),
+            ),
+        )
 
     @classmethod
     def from_water_flow(cls, wf: WaterFlow) -> Self:
         """air water flow with liquid water only"""
-        return cls(HumidAirFlow(0, HumidAirState.from_t_dry_bulb_rel_hum(20, 0)), wf)
+        return cls(
+            HumidAirFlow(
+                0,
+                HumidAirState.from_t_dry_bulb_rel_hum(
+                    wf.water_state.temperature, 1, wf.water_state.pressure
+                ),
+            ),
+            wf,
+        )
 
     @classmethod
     def from_m_air_m_water_total_enthalpy(
@@ -422,39 +446,3 @@ pp(haf2)
 
 awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
 pp(awf)
-
-# wf = WaterFlow(1, ws)
-
-# pp.pprint(wf)
-
-# t = 25
-# p = 101325
-
-# xs = ps.GetSatHumRatio(t_dry_bulb=t, pressure=p)
-# print(f"{xs=}")
-
-# # es = air_water_enthalpie(xs, t, p)
-# # print(f"{es=}")
-
-# # es = air_water_enthalpie(xs*1.1, t, p)
-# # print(f"{es=}")
-
-# hs = ps.GetSatAirEnthalpy(t, p)
-# print(f"{hs=} J/kg")
-
-# h = get_enthalpie_air_water_mix(0.0203, t, p)
-# print(f"{h=} J/kg")
-
-# h_iap = IAPWS95(T=ps.GetTKelvinFromTCelsius(t), x=0).h * 1000
-
-# print(f"{h_iap=} J/kg")
-
-# x = 0.0034
-# h = 10000
-
-# t = get_temp_from_enthalpie_air_water_mix(x, h, p)
-# print(f"{t=} °C")
-
-# print(f"{ps.GetRelHumFromHumRatio(t,x,p)*100} %")
-# h = get_enthalpie_air_water_mix(x, t, p)
-# print(f"{h=} J/kg")
