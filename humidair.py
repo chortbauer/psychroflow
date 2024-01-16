@@ -212,9 +212,9 @@ def get_sat_hum_ratio(t_dry_bulb: float, pressure: float) -> float:
     """
     Return humidity ratio of saturated air given dry-bulb temperature and pressure.
     """
-    SatVaporPres = get_sat_vap_pressure(t_dry_bulb)
+    sat_vap_pressure = get_sat_vap_pressure(t_dry_bulb)
 
-    return 0.621945 * t_dry_bulb / (pressure - t_dry_bulb)
+    return 0.621945 * sat_vap_pressure / (pressure - sat_vap_pressure)
 
 
 def get_sat_air_enthalpy(t_dry_bulb: float, pressure: float) -> float:
