@@ -68,6 +68,35 @@ class HumidAirState:
             moist_air_volume,
         )
 
+    @classmethod
+    def from_t_dry_bulb_hum_ratio(
+        cls, t_dry_bulb: float, hum_ratio: float, pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        """initiate HumidAirState with t_dry_bulb and hum_ratio"""
+
+        if 0 > hum_ratio:
+            raise ValueError("Humidity ratio cannot be negative")
+
+        vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
+        rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
+        t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
+        moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+        moist_air_volume = get_moist_air_volume(
+            t_dry_bulb,
+            hum_ratio,
+            pressure,
+        )
+        return cls(
+            pressure,
+            hum_ratio,
+            t_dry_bulb,
+            t_dew_point,
+            rel_hum,
+            vap_pres,
+            moist_air_enthalpy,
+            moist_air_volume,
+        )
+
 
 def get_sat_vap_pressure(T: float) -> float:
     """
@@ -214,6 +243,9 @@ def get_sat_hum_ratio(t_dry_bulb: float, pressure: float) -> float:
     """
     sat_vap_pressure = get_sat_vap_pressure(t_dry_bulb)
 
+    if sat_vap_pressure > pressure:
+        raise ValueError("sat_vap_pressure > pressure; no saturation possible")
+
     return 0.621945 * sat_vap_pressure / (pressure - sat_vap_pressure)
 
 
@@ -223,3 +255,20 @@ def get_sat_air_enthalpy(t_dry_bulb: float, pressure: float) -> float:
     """
     sat_hum_ratio = get_sat_hum_ratio(t_dry_bulb, pressure)
     return get_moist_air_enthalpy(t_dry_bulb, sat_hum_ratio)
+
+
+def get_rel_hum_from_vap_pressure(t_dry_bulb: float, vap_pres: float) -> float:
+    """
+    Return relative humidity given dry-bulb temperature and vapor pressure.
+    """
+    if vap_pres < 0:
+        raise ValueError(
+            "Partial pressure of water vapor in moist air cannot be negative"
+        )
+
+    return vap_pres / get_sat_vap_pressure(t_dry_bulb)
+
+
+# t=100
+# print(get_sat_vap_pressure(t))
+# print(get_sat_hum_ratio(t, 101325))
