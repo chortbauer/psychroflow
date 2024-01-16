@@ -16,163 +16,166 @@ from typing import Self
 from dataclasses import dataclass, field
 
 from scipy import optimize
-import psychrolib as ps
+# import psychrolib as ps
+
+import humidair as ha
+from humidair import HumidAirState
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
 
 # set the psychrolib unit system
-ps.SetUnitSystem(ps.SI)
+# ps.SetUnitSystem(ps.SI)
 
 STANDARD_PRESSURE = 101_325  # Pa
 
 
-@dataclass
-class HumidAirState:
-    """a humid air state"""
+# @dataclass
+# class HumidAirState:
+#     """a humid air state"""
 
-    pressure: float
-    hum_ratio: float
-    t_dry_bulb: float
-    t_wet_bulb: float
-    t_dew_point: float
-    rel_hum: float
-    vap_pres: float
-    moist_air_enthalpy: float
-    moist_air_volume: float
-    degree_of_saturation: float
+#     pressure: float
+#     hum_ratio: float
+#     t_dry_bulb: float
+#     t_wet_bulb: float
+#     t_dew_point: float
+#     rel_hum: float
+#     vap_pres: float
+#     moist_air_enthalpy: float
+#     moist_air_volume: float
+#     degree_of_saturation: float
 
-    @classmethod
-    def from_t_dry_bulb_rel_hum(
-        cls, t_dry_bulb: float, rel_hum: float, pressure: float = STANDARD_PRESSURE
-    ) -> Self:
-        """initiate HumidAirState with t_dry_bulb and rel_hum"""
+#     @classmethod
+#     def from_t_dry_bulb_rel_hum(
+#         cls, t_dry_bulb: float, rel_hum: float, pressure: float = STANDARD_PRESSURE
+#     ) -> Self:
+#         """initiate HumidAirState with t_dry_bulb and rel_hum"""
 
-        hum_ratio = ps.GetHumRatioFromRelHum(t_dry_bulb, rel_hum, pressure)
-        t_wet_bulb = ps.GetTWetBulbFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        t_dew_point = ps.GetTDewPointFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
-        moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
-        moist_air_volume = ps.GetMoistAirVolume(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        degree_of_saturation = ps.GetDegreeOfSaturation(t_dry_bulb, hum_ratio, pressure)
-        return cls(
-            pressure,
-            hum_ratio,
-            t_dry_bulb,
-            t_wet_bulb,
-            t_dew_point,
-            rel_hum,
-            vap_pres,
-            moist_air_enthalpy,
-            moist_air_volume,
-            degree_of_saturation,
-        )
+#         hum_ratio = ps.GetHumRatioFromRelHum(t_dry_bulb, rel_hum, pressure)
+#         t_wet_bulb = ps.GetTWetBulbFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         t_dew_point = ps.GetTDewPointFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
+#         moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
+#         moist_air_volume = ps.GetMoistAirVolume(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         degree_of_saturation = ps.GetDegreeOfSaturation(t_dry_bulb, hum_ratio, pressure)
+#         return cls(
+#             pressure,
+#             hum_ratio,
+#             t_dry_bulb,
+#             t_wet_bulb,
+#             t_dew_point,
+#             rel_hum,
+#             vap_pres,
+#             moist_air_enthalpy,
+#             moist_air_volume,
+#             degree_of_saturation,
+#         )
 
-    @classmethod
-    def from_t_dry_bulb_t_wet_bulb(
-        cls, t_dry_bulb: float, t_wet_bulb: float, pressure: float = STANDARD_PRESSURE
-    ) -> Self:
-        """initiate HumidAirState with t_dry_bulb and t_wet_bulb"""
+#     @classmethod
+#     def from_t_dry_bulb_t_wet_bulb(
+#         cls, t_dry_bulb: float, t_wet_bulb: float, pressure: float = STANDARD_PRESSURE
+#     ) -> Self:
+#         """initiate HumidAirState with t_dry_bulb and t_wet_bulb"""
 
-        if t_wet_bulb > t_dry_bulb:
-            raise ValueError("Wet bulb temperature is above dry bulb temperature")
+#         if t_wet_bulb > t_dry_bulb:
+#             raise ValueError("Wet bulb temperature is above dry bulb temperature")
 
-        hum_ratio = ps.GetHumRatioFromTWetBulb(
-            t_dry_bulb,
-            t_wet_bulb,
-            pressure,
-        )
-        t_dew_point = ps.GetTDewPointFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        rel_hum = ps.GetRelHumFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
-        moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
-        moist_air_volume = ps.GetMoistAirVolume(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        degree_of_saturation = ps.GetDegreeOfSaturation(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        return cls(
-            pressure,
-            hum_ratio,
-            t_dry_bulb,
-            t_wet_bulb,
-            t_dew_point,
-            rel_hum,
-            vap_pres,
-            moist_air_enthalpy,
-            moist_air_volume,
-            degree_of_saturation,
-        )
+#         hum_ratio = ps.GetHumRatioFromTWetBulb(
+#             t_dry_bulb,
+#             t_wet_bulb,
+#             pressure,
+#         )
+#         t_dew_point = ps.GetTDewPointFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         rel_hum = ps.GetRelHumFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
+#         moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
+#         moist_air_volume = ps.GetMoistAirVolume(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         degree_of_saturation = ps.GetDegreeOfSaturation(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         return cls(
+#             pressure,
+#             hum_ratio,
+#             t_dry_bulb,
+#             t_wet_bulb,
+#             t_dew_point,
+#             rel_hum,
+#             vap_pres,
+#             moist_air_enthalpy,
+#             moist_air_volume,
+#             degree_of_saturation,
+#         )
 
-    @classmethod
-    def from_t_dry_bulb_t_dew_point(
-        cls, t_dry_bulb: float, t_dew_point: float, pressure: float = STANDARD_PRESSURE
-    ) -> Self:
-        """initiate HumidAirState with t_dry_bulb and t_dew_point"""
+#     @classmethod
+#     def from_t_dry_bulb_t_dew_point(
+#         cls, t_dry_bulb: float, t_dew_point: float, pressure: float = STANDARD_PRESSURE
+#     ) -> Self:
+#         """initiate HumidAirState with t_dry_bulb and t_dew_point"""
 
-        if t_dew_point > t_dry_bulb:
-            raise ValueError("Dry bulb temperature is above dew point temperature")
+#         if t_dew_point > t_dry_bulb:
+#             raise ValueError("Dry bulb temperature is above dew point temperature")
 
-        hum_ratio = ps.GetHumRatioFromTDewPoint(t_dew_point, pressure)
-        t_wet_bulb = ps.GetTWetBulbFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        rel_hum = ps.GetRelHumFromHumRatio(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
-        moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
-        moist_air_volume = ps.GetMoistAirVolume(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        degree_of_saturation = ps.GetDegreeOfSaturation(
-            t_dry_bulb,
-            hum_ratio,
-            pressure,
-        )
-        return cls(
-            pressure,
-            hum_ratio,
-            t_dry_bulb,
-            t_wet_bulb,
-            t_dew_point,
-            rel_hum,
-            vap_pres,
-            moist_air_enthalpy,
-            moist_air_volume,
-            degree_of_saturation,
-        )
+#         hum_ratio = ps.GetHumRatioFromTDewPoint(t_dew_point, pressure)
+#         t_wet_bulb = ps.GetTWetBulbFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         rel_hum = ps.GetRelHumFromHumRatio(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         vap_pres = ps.GetVapPresFromHumRatio(hum_ratio, pressure)
+#         moist_air_enthalpy = ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
+#         moist_air_volume = ps.GetMoistAirVolume(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         degree_of_saturation = ps.GetDegreeOfSaturation(
+#             t_dry_bulb,
+#             hum_ratio,
+#             pressure,
+#         )
+#         return cls(
+#             pressure,
+#             hum_ratio,
+#             t_dry_bulb,
+#             t_wet_bulb,
+#             t_dew_point,
+#             rel_hum,
+#             vap_pres,
+#             moist_air_enthalpy,
+#             moist_air_volume,
+#             degree_of_saturation,
+#         )
 
 
 @dataclass
@@ -287,7 +290,8 @@ class AirWaterFlow:
         t_dry_bulb = get_temp_from_enthalpy_air_water_mix(
             hum_ratio, tot_enthalpy_flow / (m_air + m_water), pressure
         )
-        sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+        # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+        sat_hum_ratio = ha.get_sat_hum_ratio(t_dry_bulb, pressure)
 
         if hum_ratio <= sat_hum_ratio:
             # gas phase only
@@ -390,18 +394,21 @@ def get_enthalpy_air_water_mix(
 ) -> float:
     """specific enthalpy of an air water mixture at equilibrium in J / kg(Air + Water)"""
 
-    sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+    # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+    sat_hum_ratio = ha.get_sat_hum_ratio(t_dry_bulb, pressure)
 
-    if t_dry_bulb <= ps.FREEZING_POINT_WATER_SI:
+    if t_dry_bulb <= 0:
         raise ArgumentError("Enthalpy over ice not implemented!")
 
     if hum_ratio <= sat_hum_ratio:
         # only gas phase
         # recalculate with hum_ratio as the specific enthalpy per total mass
-        return ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
+        # return ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
+        return ha.get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
 
     # gas over liquid water
-    enthalpy_gas = ps.GetSatAirEnthalpy(t_dry_bulb, pressure)
+    # enthalpy_gas = ps.GetSatAirEnthalpy(t_dry_bulb, pressure)
+    enthalpy_gas = ha.get_sat_air_enthalpy(t_dry_bulb, pressure)
     enthalpy_liquid = get_enthalpy_water(t_dry_bulb)
     return (
         enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_liquid

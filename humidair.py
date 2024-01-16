@@ -206,3 +206,20 @@ def get_moist_air_volume(t_dry_bulb: float, hum_ratio: float, pressure: float) -
         raise ValueError("Humidity ratio cannot be negative")
 
     return 287.05 * (t_dry_bulb + 273.15) / pressure * (1 + hum_ratio / 0.621945)
+
+
+def get_sat_hum_ratio(t_dry_bulb: float, pressure: float) -> float:
+    """
+    Return humidity ratio of saturated air given dry-bulb temperature and pressure.
+    """
+    SatVaporPres = get_sat_vap_pressure(t_dry_bulb)
+
+    return 0.621945 * t_dry_bulb / (pressure - t_dry_bulb)
+
+
+def get_sat_air_enthalpy(t_dry_bulb: float, pressure: float) -> float:
+    """
+    Return saturated air enthalpy given dry-bulb temperature and pressure.
+    """
+    sat_hum_ratio = get_sat_hum_ratio(t_dry_bulb, pressure)
+    return get_moist_air_enthalpy(t_dry_bulb, sat_hum_ratio)
