@@ -288,7 +288,7 @@ def get_temp_from_tot_enthalpy_air_water_mix(
     raise ArithmeticError("Root not found: " + sol.flag)
 
 
-has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.1)
+has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=1, rel_hum=0.1)
 # has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=10, t_wet_bulb=8)
 # has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=44, t_wet_bulb=30)
 haf1 = HumidAirFlow(24000 / 3600, has1)
