@@ -16,6 +16,7 @@ from typing import Self
 from dataclasses import dataclass, field
 
 from scipy import optimize
+
 # import psychrolib as ps
 
 import humidair as ha
@@ -193,7 +194,9 @@ class HumidAirFlow:
         self.mass_flow_air = self.volume_flow / self.humid_air_state.moist_air_volume
         self.mass_flow_water = self.humid_air_state.hum_ratio * self.mass_flow_air
         self.mass_flow = self.mass_flow_air + self.mass_flow_water
-        self.tot_enthalpy_flow = self.humid_air_state.moist_air_enthalpy * self.mass_flow
+        self.tot_enthalpy_flow = (
+            self.humid_air_state.moist_air_enthalpy * self.mass_flow
+        )
 
 
 @dataclass
@@ -338,7 +341,9 @@ class AirWaterFlow:
         m_water = haf_in.mass_flow_water + wf_in.mass_flow
         tot_enthalpy_flow = haf_in.tot_enthalpy_flow + wf_in.tot_enthalpy_flow
         pressure = haf_in.humid_air_state.pressure
-        return cls.from_m_air_m_water_tot_enthalpy_flow(m_air, m_water, tot_enthalpy_flow, pressure)
+        return cls.from_m_air_m_water_tot_enthalpy_flow(
+            m_air, m_water, tot_enthalpy_flow, pressure
+        )
 
 
 def get_density_water(t: float) -> float:
@@ -410,9 +415,10 @@ def get_enthalpy_air_water_mix(
     # enthalpy_gas = ps.GetSatAirEnthalpy(t_dry_bulb, pressure)
     enthalpy_gas = ha.get_sat_air_enthalpy(t_dry_bulb, pressure)
     enthalpy_liquid = get_enthalpy_water(t_dry_bulb)
-    return (
+    enthalpy = (
         enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_liquid
     ) / (1 + hum_ratio)
+    return enthalpy
 
 
 def get_temp_from_enthalpy_air_water_mix(
@@ -446,3 +452,6 @@ pp(haf2)
 
 awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
 pp(awf)
+
+
+# print(ha.get_moist_air_enthalpy(9, 0.00535))
