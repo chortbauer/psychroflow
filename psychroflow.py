@@ -342,7 +342,7 @@ def get_density_water(t: float) -> float:
     [1] C. O. Popiel und J. Wojtkowiak,
     Simple Formulas for Thermophysical Properties of Liquid Water
     for Heat Transfer Calculations (from 0°C to 150°C)“,
-    Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87–101, Jan. 1998, doi: 10.1080/01457639808939929.
+    Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87-101, Jan. 1998, doi: 10.1080/01457639808939929.
     """
     if 0.01 > t or 150 < t:
         raise ValueError("Temperature range: 0.01 °C < T < 150 °C")
