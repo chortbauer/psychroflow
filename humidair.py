@@ -188,8 +188,8 @@ def get_moist_air_enthalpy(t_dry_bulb: float, hum_ratio: float) -> float:
 
     return (
         1.0046 * (t_dry_bulb - t_tr)
-        + hum_ratio * (2500.9 + 1.863 * (t_dry_bulb - t_tr)) * 1e3
-    )
+        + hum_ratio * (2500.9 + 1.863 * (t_dry_bulb - t_tr))
+    ) * 1e3
 
 
 def get_moist_air_volume(t_dry_bulb: float, hum_ratio: float, pressure: float) -> float:
