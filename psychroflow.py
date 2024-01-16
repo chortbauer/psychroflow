@@ -48,9 +48,6 @@ class HumidAirState:
     ) -> Self:
         """initiate HumidAirState with t_dry_bulb and rel_hum"""
 
-        if 0 > rel_hum > 1:
-            raise ValueError("Wet bulb temperature is above dry bulb temperature")
-
         hum_ratio = ps.GetHumRatioFromRelHum(t_dry_bulb, rel_hum, pressure)
         t_wet_bulb = ps.GetTWetBulbFromHumRatio(
             t_dry_bulb,
@@ -232,7 +229,7 @@ class AirWaterFlow:
 
     humid_air_flow: HumidAirFlow
     water_flow: WaterFlow
-    dry: bool = field(init=False)
+    dry: bool = field(default=True, init=False)
 
     def __post_init__(self):
         # TODO allow no air
@@ -252,7 +249,7 @@ class AirWaterFlow:
 
         # if liquid water
         if not isclose(self.water_flow.mass_flow, 0):
-            self.dry = True
+            self.dry = False
             # if there is liquid water the air has to be saturated
             if not isclose(self.humid_air_flow.humid_air_state.rel_hum, 1):
                 raise ValueError("Air over liquid water has to be saturated")
@@ -440,7 +437,7 @@ has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=40, rel_hum=0.5)
 haf1 = HumidAirFlow(1, has1)
 pp(haf1)
 
-has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.5)
+has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=40, rel_hum=0.5)
 haf2 = HumidAirFlow(2, has2)
 pp(haf2)
 
