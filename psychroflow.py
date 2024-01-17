@@ -6,10 +6,7 @@ Created on 2024-01-02 07:09:48
 Unit conventions:
 SI units are used for all physical values except temperatur for which °C is used.
 """
-from ctypes import ArgumentError
 
-# import logging
-import pprint
 from math import isclose
 
 from typing import Self
@@ -17,13 +14,8 @@ from dataclasses import dataclass, field
 
 from scipy import optimize
 
-import psychrolib as ps
-
 import humidair as ha
-from humidair import HumidAirState
 
-PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
-pp = PrettyPrinter.pprint
 
 STANDARD_PRESSURE = 101_325  # Pa
 
@@ -33,7 +25,7 @@ class HumidAirFlow:
     """A flow of air and water vapour"""
 
     volume_flow: float
-    humid_air_state: HumidAirState
+    humid_air_state: ha.HumidAirState
     mass_flow_air: float = field(init=False)
     mass_flow_water: float = field(init=False)
     mass_flow: float = field(init=False)
@@ -126,7 +118,7 @@ class AirWaterFlow:
         return cls(
             HumidAirFlow(
                 0,
-                HumidAirState.from_t_dry_bulb_rel_hum(
+                ha.HumidAirState.from_t_dry_bulb_rel_hum(
                     wf.water_state.temperature, 1, wf.water_state.pressure
                 ),
             ),
@@ -147,7 +139,7 @@ class AirWaterFlow:
 
         if hum_ratio <= sat_hum_ratio:
             # gas phase only
-            has = HumidAirState.from_t_dry_bulb_hum_ratio(
+            has = ha.HumidAirState.from_t_dry_bulb_hum_ratio(
                 t_dry_bulb, hum_ratio, pressure
             )
             volume_flow = m_air / has.moist_air_volume
@@ -158,7 +150,7 @@ class AirWaterFlow:
                 )
             )
         # gas phase and liquid phase
-        has = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
+        has = ha.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
         volume_flow_gas = m_air * has.moist_air_volume
         haf = HumidAirFlow(volume_flow_gas, has)
         ws = WaterState(t_dry_bulb, pressure)
@@ -205,6 +197,8 @@ def get_density_water(t: float) -> float:
     if 0.01 > t or 150 < t:
         raise ValueError("Temperature range: 0.01 °C < T < 150 °C")
 
+    tau = 1 - (t + 273.15) / 647.096
+
     rho_c = 322
     b1 = 1.99274064
     b2 = 1.09965342
@@ -214,12 +208,12 @@ def get_density_water(t: float) -> float:
     b6 = -6.74694450e5
     return rho_c * (
         1
-        + b1 * t ** (1 / 3)
-        + b2 * t ** (2 / 3)
-        + b3 * t ** (5 / 3)
-        + b4 * t ** (16 / 3)
-        + b5 * t ** (43 / 3)
-        + b6 * t ** (110 / 3)
+        + b1 * tau ** (1 / 3)
+        + b2 * tau ** (2 / 3)
+        + b3 * tau ** (5 / 3)
+        + b4 * tau ** (16 / 3)
+        + b5 * tau ** (43 / 3)
+        + b6 * tau ** (110 / 3)
     )
 
 
@@ -292,15 +286,3 @@ def get_temp_from_tot_enthalpy_air_water_mix(
     if sol.converged:
         return sol.root
     raise ArithmeticError("Root not found: " + sol.flag)
-
-
-has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.5)
-haf1 = HumidAirFlow(24000 / 3600, has1)
-pp(haf1)
-
-has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.6)
-haf2 = HumidAirFlow(6000 / 3600, has2)
-pp(haf2)
-
-awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
-pp(awf)
