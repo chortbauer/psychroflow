@@ -109,8 +109,8 @@ def get_sat_vap_pressure(T: float) -> float:
     doi: 10.1080/01457639808939929.
     """
 
-    if 0 > T or 150 < T:
-        raise ValueError("Invalid temperature range 0<=t<=150 ([t]=°C)")
+    if -50 > T or 150 < T:
+        raise ValueError("Invalid temperature range -50<=t<=150 ([t]=°C)")
 
     pc = 220.64e5  # Pa
     Tc = 647.096  # K
@@ -135,7 +135,28 @@ def get_sat_vap_pressure(T: float) -> float:
         )
     )
 
-# TODO handle t_dew_point < 0
+
+# def get_sat_vap_pressure(t_dry_bulb: float) -> float:
+#     """
+#     calculate the saturation vapor pressure of water
+
+#     [1] J. M. Richards, „A simple expression for the saturation vapour pressure of water
+#     in the range $minus$50 to 140$deg$C“, J. Phys. D: Appl. Phys., Bd. 4, Nr. 4, S. L15–L18,
+#     Apr. 1971, doi: 10.1088/0022-3727/4/4/101.
+#     """
+
+#     # if -50 > t_dry_bulb or 100 < t_dry_bulb:
+#     #     raise ValueError("Invalid temperature range -50<=t<=100 ([t]=°C)")
+
+#     Ts = 373.15 # K
+
+#     ps = STANDARD_PRESSURE
+#     t = 1 - Ts/(t_dry_bulb+273.15)
+    
+#     return ps * exp(13.3185 * t - 1.9760 * t**2 - 0.6445 * t**3 - 0.1299 * t**4)
+
+
+# TODO handle t_dew_point < -50
 def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
     """calculate the dew point tempreture from the water vapor pressure"""
     if vap_pres < 0:
@@ -146,7 +167,7 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
     def fun(t):
         return vap_pres - get_sat_vap_pressure(t)
 
-    sol = optimize.root_scalar(fun, bracket=[0, 150])
+    sol = optimize.root_scalar(fun, bracket=[-50, 150])
 
     if sol.converged:
         return sol.root
@@ -269,6 +290,7 @@ def get_rel_hum_from_vap_pressure(t_dry_bulb: float, vap_pres: float) -> float:
     return vap_pres / get_sat_vap_pressure(t_dry_bulb)
 
 
-# t=100
+# t=-1
 # print(get_sat_vap_pressure(t))
+# print(get_sat_vap_pressure_0_150(t))
 # print(get_sat_hum_ratio(t, 101325))

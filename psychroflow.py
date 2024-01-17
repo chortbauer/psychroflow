@@ -251,21 +251,27 @@ def get_tot_enthalpy_air_water_mix(
     # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
     sat_hum_ratio = ha.get_sat_hum_ratio(t_dry_bulb, pressure)
 
-    if t_dry_bulb <= 0:
-        raise ArgumentError("Enthalpy over ice not implemented!")
-
+    # unsaturated air
     if hum_ratio <= sat_hum_ratio:
-        # only gas phase
         # recalculate with hum_ratio as the specific enthalpy per total mass
-        # return ps.GetMoistAirEnthalpy(t_dry_bulb, hum_ratio)
         return ha.get_moist_air_enthalpy(t_dry_bulb, hum_ratio) / (1 + hum_ratio)
 
-    # gas over liquid water
-    # enthalpy_gas = ps.GetSatAirEnthalpy(t_dry_bulb, pressure)
     enthalpy_gas = ha.get_sat_air_enthalpy(t_dry_bulb, pressure)
-    enthalpy_liquid = get_enthalpy_water(t_dry_bulb)
+
+    # saturated air over ice
+    if t_dry_bulb <= 0:
+        # raise ArgumentError("Enthalpy over ice not implemented!")
+        enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
+        enthalpy = (
+            enthalpy_gas * (1 + hum_ratio - sat_hum_ratio)
+            + sat_hum_ratio * enthalpy_ice
+        ) / (1 + hum_ratio)
+        return enthalpy
+
+    # saturated air over liquid water
+    enthalpy_water = get_enthalpy_water(t_dry_bulb)
     enthalpy = (
-        enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_liquid
+        enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_water
     ) / (1 + hum_ratio)
     return enthalpy
 
@@ -281,21 +287,18 @@ def get_temp_from_tot_enthalpy_air_water_mix(
     def fun(t):
         return enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    sol = optimize.root_scalar(fun, bracket=[0.01, 99.9])
+    sol = optimize.root_scalar(fun, bracket=[-50, 99])
 
     if sol.converged:
         return sol.root
     raise ArithmeticError("Root not found: " + sol.flag)
 
 
-has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=1, rel_hum=0.1)
-# has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=10, t_wet_bulb=8)
-# has1 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=44, t_wet_bulb=30)
+has1 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.5)
 haf1 = HumidAirFlow(24000 / 3600, has1)
 pp(haf1)
 
-has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.5)
-# has2 = HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb=10, t_wet_bulb=8)
+has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.6)
 haf2 = HumidAirFlow(6000 / 3600, has2)
 pp(haf2)
 
