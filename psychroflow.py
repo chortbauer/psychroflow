@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from scipy import optimize
 
 import humidair as ha
+from humidair import HumidAirState
 
 
 STANDARD_PRESSURE = 101_325  # Pa
@@ -25,7 +26,7 @@ class HumidAirFlow:
     """A flow of air and water vapour"""
 
     volume_flow: float
-    humid_air_state: ha.HumidAirState
+    humid_air_state: HumidAirState
     mass_flow_air: float = field(init=False)
     mass_flow_water: float = field(init=False)
     mass_flow: float = field(init=False)
@@ -38,6 +39,14 @@ class HumidAirFlow:
         self.tot_enthalpy_flow = (
             self.humid_air_state.moist_air_enthalpy * self.mass_flow_air
         )
+
+    def str_short(self) -> str:
+        """returns a short strin repr"""
+        vol = f"V={self.volume_flow*3600:.1f}m³/h"
+        t = f"T={self.humid_air_state.t_dry_bulb:.1f}°C"
+        t_tau = f"T_tau={self.humid_air_state.t_dew_point:.1f}°C"
+        f = f"Feuchte={self.humid_air_state.rel_hum*100:.1f}%"
+        return "; ".join([vol, t, t_tau, f])
 
 
 @dataclass
@@ -118,7 +127,7 @@ class AirWaterFlow:
         return cls(
             HumidAirFlow(
                 0,
-                ha.HumidAirState.from_t_dry_bulb_rel_hum(
+                HumidAirState.from_t_dry_bulb_rel_hum(
                     wf.water_state.temperature, 1, wf.water_state.pressure
                 ),
             ),
@@ -139,10 +148,10 @@ class AirWaterFlow:
 
         if hum_ratio <= sat_hum_ratio:
             # gas phase only
-            has = ha.HumidAirState.from_t_dry_bulb_hum_ratio(
+            has = HumidAirState.from_t_dry_bulb_hum_ratio(
                 t_dry_bulb, hum_ratio, pressure
             )
-            volume_flow = m_air / has.moist_air_volume
+            volume_flow = m_air * has.moist_air_volume
             return cls.from_humid_air_flow(
                 HumidAirFlow(
                     volume_flow,
@@ -150,7 +159,7 @@ class AirWaterFlow:
                 )
             )
         # gas phase and liquid phase
-        has = ha.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
+        has = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
         volume_flow_gas = m_air * has.moist_air_volume
         haf = HumidAirFlow(volume_flow_gas, has)
         ws = WaterState(t_dry_bulb, pressure)
@@ -286,3 +295,24 @@ def get_temp_from_tot_enthalpy_air_water_mix(
     if sol.converged:
         return sol.root
     raise ArithmeticError("Root not found: " + sol.flag)
+
+
+def mix_two_humid_air_flows(
+    haf_in_1: HumidAirFlow, haf_in_2: HumidAirFlow
+) -> HumidAirFlow:
+    """mix two humid air flows, raises error if there is condensation"""
+    awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf_in_1, haf_in_2)
+    if awf.dry:
+        return awf.humid_air_flow
+
+    raise ValueError("Condensation")
+
+
+def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
+    """mix two humid air flows, raises error if there is condensation"""
+
+    haf_out = hafs_in[0]
+    for haf in hafs_in[1:]:
+        haf_out = mix_two_humid_air_flows(haf_out, haf)
+
+    return haf_out
