@@ -1,7 +1,7 @@
 import pprint
 
 import numpy as np
-import psychroflow as psf
+from psychroflow import *
 
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
@@ -12,27 +12,19 @@ pp = PrettyPrinter.pprint
 #     print(t , psf.get_density_water(t))
 
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.5)
-haf1 = psf.HumidAirFlow(24000 / 3600, has1)
+has1 = HumidAirState.from_hum_ratio_enthalpy(0.034, 143000)
+haf1 = HumidAirFlow(24000 / 3600, has1)
 # pp(haf1)
 
-has2 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.8)
-haf2 = psf.HumidAirFlow(6000 / 3600, has2)
+has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.1)
+haf2 = HumidAirFlow(6000 / 3600, has2)
 # pp(haf2)
 
-has3 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=15, rel_hum=0.8)
-haf3 = psf.HumidAirFlow(6000 / 3600, has2)
+has3 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=15, rel_hum=0.1)
+haf3 = HumidAirFlow(6000 / 3600, has2)
 # pp(haf2)
 
-awf = psf.AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
+print("haf1: " + haf1.str_short())
 
-pp(awf)
-# if awf.dry:
-#     pp(awf.humid_air_flow.humid_air_state)
-# else:
-#     print("wet")
+print("mix: " + mix_humid_air_flows([haf1, haf2, haf3]).str_short())
 
-
-# print("mix: " + psf.mix_humid_air_flows([haf1, haf2]).str_short())
-
-print(psf.get_pre)
