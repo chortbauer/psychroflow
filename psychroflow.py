@@ -316,3 +316,18 @@ def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
         haf_out = mix_two_humid_air_flows(haf_out, haf)
 
     return haf_out
+
+# should it be a method of HAF
+def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
+    """add water stream to air stream"""
+    m_air = haf.mass_flow_air
+    m_water = haf.mass_flow_water + wf.mass_flow
+
+    hum_ratio = m_water / m_air
+
+    tot_enthalpy_flow = haf.tot_enthalpy_flow + wf.tot_enthalpy_flow
+    enthalpy = tot_enthalpy_flow / m_air
+
+    has_out = HumidAirState.from_hum_ratio_enthalpy(hum_ratio, enthalpy)
+
+    return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)

@@ -24,11 +24,15 @@ has3 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=15, rel_hum=0.8)
 haf3 = psf.HumidAirFlow(6000 / 3600, has2)
 # pp(haf2)
 
-# awf = psf.AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
+awf = psf.AirWaterFlow.from_mixing_two_humid_air_flows(haf1, haf2)
+
+pp(awf)
 # if awf.dry:
 #     pp(awf.humid_air_flow.humid_air_state)
 # else:
 #     print("wet")
 
 
-print(psf.mix_humid_air_flows([haf1, haf2]).str_short())
+# print("mix: " + psf.mix_humid_air_flows([haf1, haf2]).str_short())
+
+print(psf.get_pre)

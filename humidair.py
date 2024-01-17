@@ -8,22 +8,23 @@ SI units are used for all physical values except temperatur for which °C is use
 """
 
 import pprint
-from math import isclose, exp
+from math import exp
 
 from typing import Self
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from scipy import optimize
-
-import psychrolib as ps
-
-ps.SetUnitSystem(ps.SI)
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
 
 
 STANDARD_PRESSURE = 101_325  # Pa
+
+
+def get_pressure_from_height(height_above_sea_level: float) -> float:
+    """return mean atmospheric pressure at height above mean sea level"""
+    return STANDARD_PRESSURE * exp(-height_above_sea_level / 8435)
 
 
 @dataclass
@@ -96,6 +97,12 @@ class HumidAirState:
             moist_air_enthalpy,
             moist_air_volume,
         )
+    
+    @classmethod
+    def from_hum_ratio_enthalpy(
+        cls, t_dry_bulb: float, hum_ratio: float, pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        # TODO
 
 
 def get_sat_vap_pressure(T: float) -> float:
