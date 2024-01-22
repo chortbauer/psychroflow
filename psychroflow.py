@@ -7,7 +7,7 @@ Unit conventions:
 SI units are used for all physical values except temperatur for which °C is used.
 """
 
-from logging import warning
+# from logging import warning
 import warnings
 from math import isclose, exp
 
@@ -103,6 +103,7 @@ class HumidAirState:
         moist_air_enthalpy: float,
         pressure: float = STANDARD_PRESSURE,
     ) -> Self:
+        """init humid air state from hum_ratio [kg(Water)/kg(Air)] and enthalpy [J/kg(Air)]"""
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
         tot_enthalpy = moist_air_enthalpy / (1 + hum_ratio)
         t_dry_bulb = get_temp_from_tot_enthalpy_air_water_mix(
@@ -123,7 +124,7 @@ class HumidAirState:
         )
 
 
-def get_sat_vap_pressure(T: float) -> float:
+def get_sat_vap_pressure(t_dry_bulb: float) -> float:
     """
     calculate the saturation vapor pressure of water
 
@@ -134,13 +135,13 @@ def get_sat_vap_pressure(T: float) -> float:
     doi: 10.1080/01457639808939929.
     """
 
-    if -50 > T or 150 < T:
+    if -50 > t_dry_bulb or 150 < t_dry_bulb:
         raise ValueError("Invalid temperature range -50<=t<=150 ([t]=°C)")
 
     pc = 220.64e5  # Pa
-    Tc = 647.096  # K
+    t_c = 647.096  # K
 
-    t = 1 - (273.15 + T) / Tc
+    t = 1 - (273.15 + t_dry_bulb) / t_c
     a1 = -7.85951783
     a2 = 1.84408259
     a3 = -11.7866497
@@ -149,7 +150,7 @@ def get_sat_vap_pressure(T: float) -> float:
     a6 = 1.80122502
 
     return pc * exp(
-        (Tc / (273.15 + T))
+        (t_c / (273.15 + t_dry_bulb))
         * (
             a1 * t
             + a2 * t**1.5
@@ -167,9 +168,11 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
         raise ValueError(
             "Partial pressure of water vapor in moist air cannot be negative"
         )
-    
+
     if vap_pres < get_sat_vap_pressure(-50):
-        warnings.warn("Dew point temperature < 50 °C are no calculated correctly. Other values not affected")
+        warnings.warn(
+            "Dew point temperature < 50 °C are no calculated correctly. Other values not affected"
+        )
         return -50
 
     def fun(t):
@@ -473,6 +476,61 @@ class AirWaterFlow:
         )
 
 
+def get_temp_from_tot_enthalpy_air_water_mix(
+    hum_ratio: float, enthalpy: float, pressure: float
+) -> float:
+    """
+    calculate temperature of an air water mix at equilibrium
+    WARNING: enthalpy is per the total mass, in J / kg(Air+Water)
+    """
+
+    def fun(t):
+        return enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
+
+    sol = optimize.root_scalar(fun, bracket=[-50, 99])
+
+    if sol.converged:
+        return sol.root
+    raise ArithmeticError("Root not found: " + sol.flag)
+
+
+def mix_two_humid_air_flows(
+    haf_in_1: HumidAirFlow, haf_in_2: HumidAirFlow
+) -> HumidAirFlow:
+    """mix two humid air flows, raises error if there is condensation"""
+    awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf_in_1, haf_in_2)
+    if awf.dry:
+        return awf.humid_air_flow
+
+    raise ValueError("Condensation")
+
+
+def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
+    """mix two humid air flows, raises error if there is condensation"""
+
+    haf_out = hafs_in[0]
+    for haf in hafs_in[1:]:
+        haf_out = mix_two_humid_air_flows(haf_out, haf)
+
+    return haf_out
+
+
+# should it be a method of HAF
+def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
+    """add water stream to air stream"""
+    m_air = haf.mass_flow_air
+    m_water = haf.mass_flow_water + wf.mass_flow
+
+    hum_ratio = m_water / m_air
+
+    tot_enthalpy_flow = haf.tot_enthalpy_flow + wf.tot_enthalpy_flow
+    enthalpy = tot_enthalpy_flow / m_air
+
+    has_out = HumidAirState.from_hum_ratio_enthalpy(hum_ratio, enthalpy)
+
+    return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
+
+
 def get_density_water(t: float) -> float:
     """
     [1] C. O. Popiel und J. Wojtkowiak,
@@ -554,58 +612,3 @@ def get_tot_enthalpy_air_water_mix(
         enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_water
     ) / (1 + hum_ratio)
     return enthalpy
-
-
-def get_temp_from_tot_enthalpy_air_water_mix(
-    hum_ratio: float, enthalpy: float, pressure: float
-) -> float:
-    """
-    calculate temperature of an air water mix at equilibrium
-    WARNING: enthalpy is per the total mass, in J / kg(Air+Water)
-    """
-
-    def fun(t):
-        return enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
-
-    sol = optimize.root_scalar(fun, bracket=[-50, 99])
-
-    if sol.converged:
-        return sol.root
-    raise ArithmeticError("Root not found: " + sol.flag)
-
-
-def mix_two_humid_air_flows(
-    haf_in_1: HumidAirFlow, haf_in_2: HumidAirFlow
-) -> HumidAirFlow:
-    """mix two humid air flows, raises error if there is condensation"""
-    awf = AirWaterFlow.from_mixing_two_humid_air_flows(haf_in_1, haf_in_2)
-    if awf.dry:
-        return awf.humid_air_flow
-
-    raise ValueError("Condensation")
-
-
-def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
-    """mix two humid air flows, raises error if there is condensation"""
-
-    haf_out = hafs_in[0]
-    for haf in hafs_in[1:]:
-        haf_out = mix_two_humid_air_flows(haf_out, haf)
-
-    return haf_out
-
-
-# should it be a method of HAF
-def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
-    """add water stream to air stream"""
-    m_air = haf.mass_flow_air
-    m_water = haf.mass_flow_water + wf.mass_flow
-
-    hum_ratio = m_water / m_air
-
-    tot_enthalpy_flow = haf.tot_enthalpy_flow + wf.tot_enthalpy_flow
-    enthalpy = tot_enthalpy_flow / m_air
-
-    has_out = HumidAirState.from_hum_ratio_enthalpy(hum_ratio, enthalpy)
-
-    return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
