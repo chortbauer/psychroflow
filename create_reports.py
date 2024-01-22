@@ -21,7 +21,7 @@ def combine_humid_air_flows(
     projekt_number="",
     author="orc",
     filename="report_mix_air_streams",
-    save_html=True,
+    save_html=False,
     save_pdf=True,
 ):
     """creates a report for the mixing of humid air flows"""
