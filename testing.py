@@ -1,6 +1,5 @@
 import pprint
 
-import numpy as np
 from psychroflow import *
 
 
@@ -12,19 +11,19 @@ pp = PrettyPrinter.pprint
 #     print(t , psf.get_density_water(t))
 
 
-has1 = HumidAirState.from_hum_ratio_enthalpy(0.034, 143000)
+has1 = HumidAirState.from_t_dry_bulb_rel_hum(44, 0.5)
 haf1 = HumidAirFlow(24000 / 3600, has1)
 # pp(haf1)
 
-has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.1)
+has2 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.7)
 haf2 = HumidAirFlow(6000 / 3600, has2)
 # pp(haf2)
 
-has3 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=15, rel_hum=0.1)
-haf3 = HumidAirFlow(6000 / 3600, has2)
+# has3 = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=15, rel_hum=0.1)
+# haf3 = HumidAirFlow(6000 / 3600, has2)
 # pp(haf2)
 
 print("haf1: " + haf1.str_short())
 
-print("mix: " + mix_humid_air_flows([haf1, haf2, haf3]).str_short())
+print("mix: " + mix_humid_air_flows([haf1, haf2]).str_short())
 
