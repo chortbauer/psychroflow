@@ -23,4 +23,11 @@ has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=12, rel_hum=0.3, pres
 hafs.append(psf.HumidAirFlow(6000 / 3600, has))
 
 
-combine_humid_air_flows(hafs)
+combine_humid_air_flows(
+    humid_air_flows=hafs,
+    projekt_name="",
+    projekt_number="",
+    author="orc",
+    file_name="output/report_mix_air_streams",
+    save_html=False
+)

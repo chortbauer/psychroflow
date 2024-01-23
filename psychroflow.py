@@ -17,10 +17,10 @@ from dataclasses import dataclass, field
 
 from psychrostate import (
     HumidAirState,
-    WaterState,
     get_temp_from_tot_enthalpy_air_water_mix,
     get_sat_hum_ratio,
 )
+from waterstate import WaterState
 
 
 @dataclass

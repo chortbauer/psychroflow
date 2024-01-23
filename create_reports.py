@@ -4,13 +4,11 @@ Created on 2024-01-19 09:56:57
 @author: orc
 """
 
-# from pathlib import Path
+from pathlib import Path
 from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML, CSS
-
-# from weasyprint.text.fonts import FontConfiguration
 
 import psychroflow as psf
 
@@ -20,7 +18,7 @@ def combine_humid_air_flows(
     projekt_name="",
     projekt_number="",
     author="orc",
-    filename="report_mix_air_streams",
+    file_name=r"output/report_mix_air_streams",
     save_html=False,
     save_pdf=True,
 ):
@@ -67,9 +65,11 @@ def combine_humid_air_flows(
         ),
     )
 
+    file_path = Path(file_name)
+
     # save html to file
     if save_html:
-        with open(filename + ".html", "w", encoding="utf-8") as f:
+        with open(file_path.with_suffix(".html"), "w", encoding="utf-8") as f:
             f.write(html)
 
     # print html to pdf
@@ -79,4 +79,4 @@ def combine_humid_air_flows(
             string="""@page {size: A4; margin: 2.5cm;}""",
             # font_config=font_config,
         )
-        HTML(string=html).write_pdf(filename + ".pdf", stylesheets=[css])
+        HTML(string=html).write_pdf(file_path.with_suffix(".pdf"), stylesheets=[css])
