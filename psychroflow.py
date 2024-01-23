@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 from psychrostate import (
     HumidAirState,
-    get_temp_from_tot_enthalpy_air_water_mix,
+    get_t_dry_bulb_from_tot_enthalpy_air_water_mix,
     get_sat_hum_ratio,
 )
 from waterstate import WaterState
@@ -128,7 +128,7 @@ class AirWaterFlow:
     ) -> Self:
         """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
         hum_ratio = m_water / m_air
-        t_dry_bulb = get_temp_from_tot_enthalpy_air_water_mix(
+        t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
             hum_ratio, tot_enthalpy_flow / (m_air + m_water), pressure
         )
         # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)

@@ -13,7 +13,7 @@ from weasyprint import HTML, CSS
 import psychroflow as psf
 
 
-def combine_humid_air_flows(
+def create_report_mix_humid_air_flows(
     humid_air_flows,
     projekt_name="",
     projekt_number="",

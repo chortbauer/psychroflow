@@ -6,7 +6,7 @@ Created on 2024-01-23 12:38:04
 
 import warnings
 from typing import Self
-from math import exp
+from math import exp, isclose
 
 from dataclasses import dataclass
 
@@ -104,7 +104,7 @@ class HumidAirState:
         """init humid air state from hum_ratio [kg(Water)/kg(Air)] and enthalpy [J/kg(Air)]"""
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
         tot_enthalpy = moist_air_enthalpy / (1 + hum_ratio)
-        t_dry_bulb = get_temp_from_tot_enthalpy_air_water_mix(
+        t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
             hum_ratio, tot_enthalpy, pressure
         )
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
@@ -122,7 +122,9 @@ class HumidAirState:
         )
 
 
-def get_sat_vap_pressure(t_dry_bulb: float) -> float:
+def get_sat_vap_pressure(
+    t_dry_bulb: float, *, ignore_valid_range: bool = False
+) -> float:
     """
     calculate the saturation vapor pressure of water
 
@@ -132,9 +134,10 @@ def get_sat_vap_pressure(t_dry_bulb: float) -> float:
     Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87-101, Jan. 1998,
     doi: 10.1080/01457639808939929.
     """
-
-    if -50 > t_dry_bulb or 150 < t_dry_bulb:
-        raise ValueError("Invalid temperature range -50<=t<=150 ([t]=°C)")
+    if not ignore_valid_range:
+        if -50 > t_dry_bulb or 150 < t_dry_bulb:
+            #     raise ValueError(f"Invalid temperature range -50°C<=t<=150°C; {t_dry_bulb:=.2f}")
+            print(f"Invalid temperature range -50°C<=t<=150°C; t = {t_dry_bulb}°C")
 
     pc = 220.64e5  # Pa
     t_c = 647.096  # K
@@ -160,31 +163,6 @@ def get_sat_vap_pressure(t_dry_bulb: float) -> float:
     )
 
 
-def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
-    """calculate the dew point tempreture from the water vapor pressure"""
-    if vap_pres < 0:
-        raise ValueError(
-            "Partial pressure of water vapor in moist air cannot be negative"
-        )
-
-    if vap_pres < get_sat_vap_pressure(-50):
-        warnings.warn(
-            "Dew point temperature < 50 °C are no calculated correctly. Other values not affected"
-        )
-        return -50
-
-    def fun(t):
-        return vap_pres - get_sat_vap_pressure(t)
-
-    # sol = optimize.root_scalar(fun, bracket=[-50, 150])
-    sol = optimize.root_scalar(fun, x0=20)
-
-    if sol.converged:
-        return sol.root
-    else:
-        raise ValueError("Root not converged: " + sol.flag)
-
-
 def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:
     """Return partial pressure of water vapor as a function of relative humidity and temperature."""
 
@@ -192,6 +170,34 @@ def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:
         raise ValueError("Relative humidity is outside range [0, 1]")
 
     return rel_hum * get_sat_vap_pressure(t_dry_bulb)
+
+
+def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
+    """calculate the dew point tempreture from the water vapor pressure"""
+    if vap_pres < 0:
+        raise ValueError(
+            "Partial pressure of water vapor in moist air cannot be negative"
+        )
+
+    # if vap_pres < get_sat_vap_pressure(-50):
+    #     warnings.warn(
+    #         "Dew point temperature < 50 °C are no calculated correctly. Other values not affected"
+    #     )
+    #     return -50
+
+    # if vapour pressure == 0, return -196°C
+    if isclose(0, vap_pres):
+        return -196
+
+    def fun(t):
+        return vap_pres - get_sat_vap_pressure(t, ignore_valid_range=True)
+
+    sol = optimize.root_scalar(fun, bracket=[-196, 150])
+
+    if sol.converged:
+        return sol.root
+    else:
+        raise ValueError("Root not converged: " + sol.flag)
 
 
 def get_hum_ratio_from_vap_press(vap_pres: float, pressure: float) -> float:
@@ -300,8 +306,8 @@ def get_rel_hum_from_vap_pressure(t_dry_bulb: float, vap_pres: float) -> float:
     return vap_pres / get_sat_vap_pressure(t_dry_bulb)
 
 
-def get_temp_from_tot_enthalpy_air_water_mix(
-    hum_ratio: float, enthalpy: float, pressure: float
+def get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
+    hum_ratio: float, tot_enthalpy: float, pressure: float
 ) -> float:
     """
     calculate temperature of an air water mix at equilibrium
@@ -309,10 +315,10 @@ def get_temp_from_tot_enthalpy_air_water_mix(
     """
 
     def fun(t):
-        return enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
+        return tot_enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    # sol = optimize.root_scalar(fun, bracket=[-50, 99])
-    sol = optimize.root_scalar(fun, x0=20)
+    sol = optimize.root_scalar(fun, bracket=[-50, 80])
+    # sol = optimize.root_scalar(fun, x0=20)
 
     if sol.converged:
         return sol.root
@@ -334,19 +340,17 @@ def get_tot_enthalpy_air_water_mix(
 
     enthalpy_gas = get_sat_air_enthalpy(t_dry_bulb, pressure)
 
-    # saturated air over ice
-    if t_dry_bulb <= 0:
-        # raise ArgumentError("Enthalpy over ice not implemented!")
-        enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
-        enthalpy = (
-            enthalpy_gas * (1 + hum_ratio - sat_hum_ratio)
-            + sat_hum_ratio * enthalpy_ice
-        ) / (1 + hum_ratio)
-        return enthalpy
-
     # saturated air over liquid water
-    enthalpy_water = get_enthalpy_water(t_dry_bulb)
-    enthalpy = (
-        enthalpy_gas * (1 + hum_ratio - sat_hum_ratio) + sat_hum_ratio * enthalpy_water
-    ) / (1 + hum_ratio)
-    return enthalpy
+    if t_dry_bulb >= 0.01:
+        enthalpy_water = get_enthalpy_water(t_dry_bulb)
+        tot_enthalpy = (enthalpy_gas + enthalpy_water * (hum_ratio - sat_hum_ratio)) / (
+            1 + hum_ratio
+        )
+        return tot_enthalpy
+
+    # saturated air over ice
+    enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
+    tot_enthalpy = (enthalpy_gas + enthalpy_ice * (hum_ratio - sat_hum_ratio)) / (
+        1 + hum_ratio
+    )
+    return tot_enthalpy
