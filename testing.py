@@ -23,15 +23,15 @@ pp = PrettyPrinter.pprint
 
 hafs = []
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(50, 0.1)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(50, 0.4)
 haf1 = psf.HumidAirFlow(1 / 3600, has1)
 hafs.append(haf1)
-# pp(haf1)
+pp(haf1)
 
-has2 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.5)
-haf2 = psf.HumidAirFlow(1 / 3600, has2)
-hafs.append(haf2)
-pp(haf2)
+# has2 = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.5)
+# haf2 = psf.HumidAirFlow(1 / 3600, has2)
+# hafs.append(haf2)
+# pp(haf2)
 
 
 
@@ -43,10 +43,12 @@ pp(haf2)
 
 # pp(mix)
 
-wf = psf.WaterFlow(0.00001/3600, ws.WaterState(10))
+wf = psf.WaterFlow(1, ws.WaterState(10))
 
-wf_s = haf1.how_much_water_to_rel_hum(wf,0.3)
+wf_s = haf1.how_much_water_to_rel_hum(wf,0.7)
+# haf = haf1.add_water_flow_to_rel_hum(wf,0.7)
 
 pp(wf_s)
+# pp(haf)
 
-pp(haf1.add_water_flow(wf_s))
+# pp(haf1.add_water_flow(wf_s))

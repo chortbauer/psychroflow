@@ -18,6 +18,7 @@ from psychrostate import (
     HumidAirState,
     get_t_dry_bulb_from_tot_enthalpy_air_water_mix,
     get_sat_hum_ratio,
+    STANDARD_PRESSURE,
 )
 from waterstate import WaterState
 
@@ -83,30 +84,34 @@ class HumidAirFlow:
 
         return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
 
-    def how_much_water_to_rel_hum(self, wf: WaterFlow, rel_hum_target) -> WaterFlow:
+    def how_much_water_to_rel_hum(self, t_water, rel_hum_target: float) -> WaterFlow:
         """returns the water flow needed to reach the target relative humidity"""
 
         if rel_hum_target < self.humid_air_state.rel_hum:
-            raise ValueError("target rel_hum must be higher than current rel_hum")
+            raise ValueError("rel_hum_target must be higher than current rel_hum")
 
         def fun(v_f):
             return (
                 rel_hum_target
                 - self.add_water_flow(
-                    WaterFlow(v_f, wf.water_state), ignore_valid_range=True
+                    WaterFlow(v_f, WaterState(t_water)), ignore_valid_range=True
                 ).humid_air_state.rel_hum
             )
 
-        # sol = optimize.root_scalar(fun, bracket=[-self.volume_flow, self.volume_flow])
         sol = optimize.root_scalar(fun, bracket=[0, self.volume_flow], xtol=1e-8)
 
         if sol.converged:
-            return WaterFlow(sol.root, wf.water_state)
-        else:
-            raise ValueError("Root not converged: " + sol.flag)
+            return WaterFlow(sol.root, WaterState(t_water))
 
-    # def add_water_flow_to_rel_hum(self, wf:WaterFlow, rel_hum) -> "HumidAirFlow":
-    #     return
+        raise ValueError("Root not converged: " + sol.flag)
+
+    def add_water_flow_to_rel_hum(
+        self, wf: WaterFlow, rel_hum_target: float
+    ) -> "HumidAirFlow":
+        """add a"""
+        wf_scaled = self.how_much_water_to_rel_hum(wf, rel_hum_target)
+
+        return self.add_water_flow(wf_scaled)
 
 
 @dataclass
@@ -126,13 +131,6 @@ class AirWaterFlow:
         ):
             raise ValueError("Temperature of air- and waterflow must be equal!")
 
-        # check pressure match
-        if not isclose(
-            self.humid_air_flow.humid_air_state.pressure,
-            self.water_flow.water_state.pressure,
-        ):
-            raise ValueError("Pressure of air- and waterflow must be equal!")
-
         # if liquid water
         if not isclose(self.water_flow.mass_flow, 0):
             self.dry = False
@@ -147,20 +145,20 @@ class AirWaterFlow:
             haf,
             WaterFlow(
                 0,
-                WaterState(
-                    haf.humid_air_state.t_dry_bulb, haf.humid_air_state.pressure
-                ),
+                WaterState(haf.humid_air_state.t_dry_bulb),
             ),
         )
 
     @classmethod
-    def from_water_flow(cls, wf: WaterFlow) -> Self:
+    def from_water_flow(
+        cls, wf: WaterFlow, pressure: float = STANDARD_PRESSURE
+    ) -> Self:
         """air water flow with liquid water only"""
         return cls(
             HumidAirFlow(
                 0,
                 HumidAirState.from_t_dry_bulb_rel_hum(
-                    wf.water_state.temperature, 1, wf.water_state.pressure
+                    wf.water_state.temperature, 1, pressure
                 ),
             ),
             wf,
@@ -194,7 +192,7 @@ class AirWaterFlow:
         has = HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb, 1, pressure)
         volume_flow_gas = m_air * has.moist_air_volume
         haf = HumidAirFlow(volume_flow_gas, has)
-        ws = WaterState(t_dry_bulb, pressure)
+        ws = WaterState(t_dry_bulb)
         volume_flow_liquid = (hum_ratio - sat_hum_ratio) * m_air / ws.density
         wf = WaterFlow(volume_flow_liquid, ws)
         return cls(haf, wf)

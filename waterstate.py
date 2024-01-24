@@ -6,14 +6,12 @@ Created on 2024-01-23 14:59:00
 
 from dataclasses import dataclass, field
 
-STANDARD_PRESSURE = 101_325  # Pa
 
 @dataclass
 class WaterState:
     """A state of liquid water"""
 
     temperature: float
-    pressure: float = field(default=STANDARD_PRESSURE)
     density: float = field(init=False)
     enthalpy: float = field(init=False)
 
