@@ -5,12 +5,14 @@ Created on 2024-01-22 07:30:30
 @author: orc
 """
 
+# pylint: disable=unused-import
+
 import pprint
 
 import numpy as np
 
-import psychroflow as psf # pylint: disable=unused-import
-import psychrostate as pss # pylint: disable=unused-import
+import psychroflow as psf
+import psychrostate as pss
 import waterstate as ws
 
 
@@ -34,9 +36,8 @@ pp(haf1)
 # pp(haf2)
 
 
-
 # for i, haf in enumerate(hafs):
-    # print(f"haf{i}: {haf.str_short()}")
+# print(f"haf{i}: {haf.str_short()}")
 
 # mix = psf.mix_humid_air_flows([haf1, haf2])
 # print("mix: " + mix.str_short())
@@ -47,7 +48,7 @@ pp(haf1)
 
 # wf_s = haf1.how_much_water_to_rel_hum(80,1)
 # haf = haf1.add_water_to_rel_hum(10,0.99999)
-haf = haf1.add_water_to_rel_hum(80,0.999)
+haf = haf1.add_water_to_rel_hum(80, 0.999)
 
 # pp(wf)
 pp(haf)
