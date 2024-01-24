@@ -36,6 +36,19 @@ class WaterFlow:
         self.mass_flow = self.volume_flow * self.water_state.density
         self.enthalpy_flow = self.water_state.enthalpy * self.mass_flow
 
+    @classmethod
+    def from_volume_flow_temperature(
+        cls, volume_flow: float, temperature: float
+    ) -> Self:
+        """init with volume_flow and temperature"""
+        return cls(volume_flow, WaterState(temperature))
+
+    @classmethod
+    def from_mass_flow_temperature(cls, mass_flow: float, temperature: float) -> Self:
+        """init with mass_flow and temperature"""
+        ws = WaterState(temperature)
+        return cls(mass_flow / ws.density, ws)
+
 
 @dataclass
 class HumidAirFlow:
