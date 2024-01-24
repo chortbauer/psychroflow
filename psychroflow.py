@@ -97,34 +97,37 @@ class HumidAirFlow:
 
         return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
 
-    def how_much_water_to_rel_hum(self, t_water, rel_hum_target: float) -> WaterFlow:
+    def how_much_water_to_rel_hum(
+        self, t_water: float, rel_hum_target: float
+    ) -> WaterFlow:
         """returns the water flow needed to reach the target relative humidity"""
 
         if rel_hum_target < self.humid_air_state.rel_hum:
             raise ValueError("rel_hum_target must be higher than current rel_hum")
 
         def fun(v_f):
-            return (
-                rel_hum_target
-                - self.add_water_flow(
-                    WaterFlow(v_f, WaterState(t_water)), ignore_valid_range=True
-                ).humid_air_state.rel_hum
-            )
+            rel_hum_mix = self.add_water_flow(
+                WaterFlow(v_f, WaterState(t_water)), ignore_valid_range=True
+            ).humid_air_state.rel_hum
 
-        sol = optimize.root_scalar(fun, bracket=[0, self.volume_flow], xtol=1e-8)
+            if rel_hum_mix > 1:
+                return 1 - rel_hum_target
+            return rel_hum_mix - rel_hum_target
+
+        sol = optimize.root_scalar(fun, bracket=[0, self.volume_flow / 1e0], xtol=1e-24)
 
         if sol.converged:
             return WaterFlow(sol.root, WaterState(t_water))
 
         raise ValueError("Root not converged: " + sol.flag)
 
-    def add_water_flow_to_rel_hum(
-        self, wf: WaterFlow, rel_hum_target: float
+    def add_water_to_rel_hum(
+        self, t_water: float, rel_hum_target: float
     ) -> "HumidAirFlow":
         """add a"""
-        wf_scaled = self.how_much_water_to_rel_hum(wf, rel_hum_target)
+        wf = self.how_much_water_to_rel_hum(t_water, rel_hum_target)
 
-        return self.add_water_flow(wf_scaled)
+        return self.add_water_flow(wf)
 
 
 @dataclass

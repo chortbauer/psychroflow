@@ -275,7 +275,7 @@ def get_sat_hum_ratio(t_dry_bulb: float, pressure: float) -> float:
     sat_vap_pressure = get_sat_vap_pressure(t_dry_bulb)
 
     if sat_vap_pressure > pressure:
-        raise ValueError("sat_vap_pressure > pressure; no saturation possible")
+        raise ValueError("sat_vap_pressure > pressure; Pure steam is not implemented")
 
     return 0.621945 * sat_vap_pressure / (pressure - sat_vap_pressure)
 
