@@ -12,8 +12,7 @@ from math import isclose
 
 from typing import Self
 from dataclasses import dataclass, field
-
-# from scipy import optimize
+from scipy import optimize
 
 from psychrostate import (
     HumidAirState,
@@ -21,6 +20,20 @@ from psychrostate import (
     get_sat_hum_ratio,
 )
 from waterstate import WaterState
+
+
+@dataclass
+class WaterFlow:
+    """A flow of liquid water"""
+
+    volume_flow: float
+    water_state: WaterState
+    mass_flow: float = field(init=False)
+    enthalpy_flow: float = field(init=False)
+
+    def __post_init__(self):
+        self.mass_flow = self.volume_flow * self.water_state.density
+        self.enthalpy_flow = self.water_state.enthalpy * self.mass_flow
 
 
 @dataclass
@@ -32,13 +45,13 @@ class HumidAirFlow:
     mass_flow_air: float = field(init=False)
     mass_flow_water: float = field(init=False)
     mass_flow: float = field(init=False)
-    tot_enthalpy_flow: float = field(init=False)
+    enthalpy_flow: float = field(init=False)
 
     def __post_init__(self):
         self.mass_flow_air = self.volume_flow / self.humid_air_state.moist_air_volume
         self.mass_flow_water = self.humid_air_state.hum_ratio * self.mass_flow_air
         self.mass_flow = self.mass_flow_air + self.mass_flow_water
-        self.tot_enthalpy_flow = (
+        self.enthalpy_flow = (
             self.humid_air_state.moist_air_enthalpy * self.mass_flow_air
         )
 
@@ -50,19 +63,50 @@ class HumidAirFlow:
         f = f"Feuchte={self.humid_air_state.rel_hum*100:.1f}%"
         return "; ".join([vol, t, t_dew, f])
 
+    def add_water_flow(
+        self, wf: WaterFlow, *, ignore_valid_range=False
+    ) -> "HumidAirFlow":
+        """add water flow"""
+        m_air = self.mass_flow_air
+        m_water = self.mass_flow_water + wf.mass_flow
 
-@dataclass
-class WaterFlow:
-    """A flow of liquid water"""
+        hum_ratio = m_water / m_air
 
-    volume_flow: float
-    water_state: WaterState
-    mass_flow: float = field(init=False)
-    tot_enthalpy_flow: float = field(init=False)
+        enthalpy_flow = self.enthalpy_flow + wf.enthalpy_flow
+        enthalpy = enthalpy_flow / m_air
 
-    def __post_init__(self):
-        self.mass_flow = self.volume_flow * self.water_state.density
-        self.tot_enthalpy_flow = self.water_state.enthalpy * self.mass_flow
+        has_out = HumidAirState.from_hum_ratio_enthalpy(hum_ratio, enthalpy)
+
+        if not ignore_valid_range:
+            if has_out.rel_hum > 1:
+                raise ValueError("Condensation")
+
+        return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
+
+    def how_much_water_to_rel_hum(self, wf: WaterFlow, rel_hum_target) -> WaterFlow:
+        """returns the water flow needed to reach the target relative humidity"""
+
+        if rel_hum_target < self.humid_air_state.rel_hum:
+            raise ValueError("target rel_hum must be higher than current rel_hum")
+
+        def fun(v_f):
+            return (
+                rel_hum_target
+                - self.add_water_flow(
+                    WaterFlow(v_f, wf.water_state), ignore_valid_range=True
+                ).humid_air_state.rel_hum
+            )
+
+        # sol = optimize.root_scalar(fun, bracket=[-self.volume_flow, self.volume_flow])
+        sol = optimize.root_scalar(fun, bracket=[0, self.volume_flow], xtol=1e-8)
+
+        if sol.converged:
+            return WaterFlow(sol.root, wf.water_state)
+        else:
+            raise ValueError("Root not converged: " + sol.flag)
+
+    # def add_water_flow_to_rel_hum(self, wf:WaterFlow, rel_hum) -> "HumidAirFlow":
+    #     return
 
 
 @dataclass
@@ -123,13 +167,13 @@ class AirWaterFlow:
         )
 
     @classmethod
-    def from_m_air_m_water_tot_enthalpy_flow(
-        cls, m_air: float, m_water: float, tot_enthalpy_flow: float, pressure: float
+    def from_m_air_m_water_enthalpy_flow(
+        cls, m_air: float, m_water: float, enthalpy_flow: float, pressure: float
     ) -> Self:
         """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
         hum_ratio = m_water / m_air
         t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
-            hum_ratio, tot_enthalpy_flow / (m_air + m_water), pressure
+            hum_ratio, enthalpy_flow / (m_air + m_water), pressure
         )
         # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
         sat_hum_ratio = get_sat_hum_ratio(t_dry_bulb, pressure)
@@ -162,13 +206,13 @@ class AirWaterFlow:
         """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
         m_air = haf_in_1.mass_flow_air + haf_in_2.mass_flow_air
         m_water = haf_in_1.mass_flow_water + haf_in_2.mass_flow_water
-        tot_enthalpy_flow = haf_in_1.tot_enthalpy_flow + haf_in_2.tot_enthalpy_flow
+        enthalpy_flow = haf_in_1.enthalpy_flow + haf_in_2.enthalpy_flow
         if isclose(
             haf_in_1.humid_air_state.pressure, haf_in_2.humid_air_state.pressure
         ):
             pressure = haf_in_1.humid_air_state.pressure
-            return cls.from_m_air_m_water_tot_enthalpy_flow(
-                m_air, m_water, tot_enthalpy_flow, pressure
+            return cls.from_m_air_m_water_enthalpy_flow(
+                m_air, m_water, enthalpy_flow, pressure
             )
         raise ValueError("The pressure of the mixing air streams must be equal")
 
@@ -177,10 +221,10 @@ class AirWaterFlow:
         """create air- waterflow by mixing a HumidAirFlow and a WaterFlow"""
         m_air = haf_in.mass_flow_air
         m_water = haf_in.mass_flow_water + wf_in.mass_flow
-        tot_enthalpy_flow = haf_in.tot_enthalpy_flow + wf_in.tot_enthalpy_flow
+        enthalpy_flow = haf_in.enthalpy_flow + wf_in.enthalpy_flow
         pressure = haf_in.humid_air_state.pressure
-        return cls.from_m_air_m_water_tot_enthalpy_flow(
-            m_air, m_water, tot_enthalpy_flow, pressure
+        return cls.from_m_air_m_water_enthalpy_flow(
+            m_air, m_water, enthalpy_flow, pressure
         )
 
 
@@ -205,17 +249,6 @@ def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
     return haf_out
 
 
-# should it be a method of HAF
 def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
     """add water stream to air stream"""
-    m_air = haf.mass_flow_air
-    m_water = haf.mass_flow_water + wf.mass_flow
-
-    hum_ratio = m_water / m_air
-
-    tot_enthalpy_flow = haf.tot_enthalpy_flow + wf.tot_enthalpy_flow
-    enthalpy = tot_enthalpy_flow / m_air
-
-    has_out = HumidAirState.from_hum_ratio_enthalpy(hum_ratio, enthalpy)
-
-    return HumidAirFlow(m_air * has_out.moist_air_volume, has_out)
+    return haf.add_water_flow(wf)

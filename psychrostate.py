@@ -179,12 +179,6 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
             "Partial pressure of water vapor in moist air cannot be negative"
         )
 
-    # if vap_pres < get_sat_vap_pressure(-50):
-    #     warnings.warn(
-    #         "Dew point temperature < 50 °C are no calculated correctly. Other values not affected"
-    #     )
-    #     return -50
-
     # if vapour pressure == 0, return -196°C
     if isclose(0, vap_pres):
         return -196
@@ -318,7 +312,6 @@ def get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
         return tot_enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
     sol = optimize.root_scalar(fun, bracket=[-50, 80])
-    # sol = optimize.root_scalar(fun, x0=20)
 
     if sol.converged:
         return sol.root
