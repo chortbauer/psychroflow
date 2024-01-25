@@ -256,17 +256,21 @@ def mix_two_humid_air_flows(
 def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
     """mix two humid air flows, raises error if there is condensation"""
 
-    haf_out = hafs_in[0]
-    for haf in hafs_in[1:]:
-        haf_out = mix_two_humid_air_flows(haf_out, haf)
+    # haf_out = hafs_in[0]
+    # for haf in hafs_in[1:]:
+    #     haf_out = mix_two_humid_air_flows(haf_out, haf)
 
     # TODO check pressures  are equal
-    # haf_out = AirWaterFlow.from_m_air_m_water_enthalpy_flow(
-    #     m_air=sum([haf.mass_flow_air for haf in hafs_in]),
-    #     m_water=sum([haf.mass_flow_water for haf in hafs_in]),
-    #     enthalpy_flow=sum([haf.enthalpy_flow for haf in hafs_in]),
-    #     pressure=hafs_in[0].humid_air_state.pressure
-    # ).humid_air_flow
+    pressures = [haf.humid_air_state.pressure for haf in hafs_in]
+    if not all(isclose(pressures[i], pressures[i+1]) for i in range(len(pressures)-1)):
+        raise ValueError("Pressure of mixing air flows must be equal")
+    
+    haf_out = AirWaterFlow.from_m_air_m_water_enthalpy_flow(
+        m_air=sum([haf.mass_flow_air for haf in hafs_in]),
+        m_water=sum([haf.mass_flow_water for haf in hafs_in]),
+        enthalpy_flow=sum([haf.enthalpy_flow for haf in hafs_in]),
+        pressure=pressures[0]
+    ).humid_air_flow
 
     return haf_out
 

@@ -57,9 +57,9 @@ def __(mo, number_air_flows):
             for elem in ui_flow.elements:
                 ui_str_elems.append(f"{elem}")
             ui_str_lines.append(" ".join(ui_str_elems))
-                
+
         return mo.md(" ".join(ui_str_lines))
-        
+
     ui
     return interface_constructor, interface_md, interface_multiplier, ui
 
