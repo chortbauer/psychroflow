@@ -69,6 +69,28 @@ class HumidAirFlow:
             self.humid_air_state.moist_air_enthalpy * self.mass_flow_air
         )
 
+    @classmethod
+    def from_m_air_m_water_enthalpy_flow(
+        cls, m_air: float, m_water: float, enthalpy_flow: float, pressure: float
+    ) -> Self:
+        """create humid air flow from m_air, m_water and enthalpy"""
+        hum_ratio = m_water / m_air
+        t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
+            hum_ratio, enthalpy_flow / (m_air + m_water), pressure
+        )
+        # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
+        sat_hum_ratio = get_sat_hum_ratio(t_dry_bulb, pressure)
+
+        if hum_ratio <= sat_hum_ratio:
+            # gas phase only
+            has = HumidAirState.from_t_dry_bulb_hum_ratio(
+                t_dry_bulb, hum_ratio, pressure
+            )
+            volume_flow = m_air * has.moist_air_volume
+            return cls(volume_flow, has)
+
+        raise ValueError("Condensation")
+
     def str_short(self) -> str:
         """returns a short strin repr"""
         vol = f"V={self.volume_flow*3600:.1f}m³/h"
@@ -124,10 +146,19 @@ class HumidAirFlow:
     def add_water_to_rel_hum(
         self, t_water: float, rel_hum_target: float
     ) -> "HumidAirFlow":
-        """add a"""
+        """add water with specified temperature to air flow to reach specified relative humidity"""
         wf = self.how_much_water_to_rel_hum(t_water, rel_hum_target)
 
         return self.add_water_flow(wf)
+
+    def add_enthalpy(self, enthalpy_added_flow: float) -> "HumidAirFlow":
+        """add enthalpy_flow [W] to hmid air flow"""
+        enthalpy_flow = self.enthalpy_flow + enthalpy_added_flow
+        pressure = self.humid_air_state.pressure
+
+        return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
+            self.mass_flow_air, self.mass_flow_water, enthalpy_flow, pressure
+        )
 
 
 @dataclass
@@ -260,19 +291,23 @@ def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
     # for haf in hafs_in[1:]:
     #     haf_out = mix_two_humid_air_flows(haf_out, haf)
 
-    # TODO check pressures  are equal
     pressures = [haf.humid_air_state.pressure for haf in hafs_in]
-    if not all(isclose(pressures[i], pressures[i+1]) for i in range(len(pressures)-1)):
+    if not all(
+        isclose(pressures[i], pressures[i + 1]) for i in range(len(pressures) - 1)
+    ):
         raise ValueError("Pressure of mixing air flows must be equal")
-    
-    haf_out = AirWaterFlow.from_m_air_m_water_enthalpy_flow(
+
+    awf = AirWaterFlow.from_m_air_m_water_enthalpy_flow(
         m_air=sum([haf.mass_flow_air for haf in hafs_in]),
         m_water=sum([haf.mass_flow_water for haf in hafs_in]),
         enthalpy_flow=sum([haf.enthalpy_flow for haf in hafs_in]),
-        pressure=pressures[0]
-    ).humid_air_flow
+        pressure=pressures[0],
+    )
 
-    return haf_out
+    if awf.dry:
+        return awf.humid_air_flow
+
+    raise ValueError("Condensation")
 
 
 def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
