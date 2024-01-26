@@ -25,8 +25,8 @@ pp = PrettyPrinter.pprint
 
 hafs = []
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(50, 0.3)
-haf1 = psf.HumidAirFlow(1 / 3600, has1)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(20, 0.3)
+haf1 = psf.HumidAirFlow(1, has1)
 hafs.append(haf1)
 pp(haf1)
 
@@ -42,8 +42,10 @@ pp(haf1)
 # mix = psf.mix_humid_air_flows([haf1, haf2])
 
 print("haf1: " + haf1.str_short())
-mix = haf1.add_enthalpy(10)
+mix = haf1.heat_with_gas(1.5e-3)
 print("mix: " + mix.str_short())
+
+pp(mix)
 
 # pp(mix)
 
