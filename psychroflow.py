@@ -152,12 +152,34 @@ class HumidAirFlow:
         return self.add_water_flow(wf)
 
     def add_enthalpy(self, enthalpy_added_flow: float) -> "HumidAirFlow":
-        """add enthalpy_flow [W] to hmid air flow"""
+        """add enthalpy_flow [W] to humid air flow"""
         enthalpy_flow = self.enthalpy_flow + enthalpy_added_flow
         pressure = self.humid_air_state.pressure
 
         return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
             self.mass_flow_air, self.mass_flow_water, enthalpy_flow, pressure
+        )
+
+    # TODO test
+    # TODO is the gas ratio valid after combustion?
+    def heat_with_gas(self, m_gas_flow: float) -> "HumidAirFlow":
+        """heat the humid air flow by burning gas (CH4) [kg/s]"""
+        mol_mass_ch4 = 16  # g/mol
+        mol_mass_h2o = 18  # g/mol
+
+        # TODO enthalpy gas flow
+
+        m_water_flow_combustion = m_gas_flow / mol_mass_ch4 * 2 * mol_mass_h2o
+
+        calorific_value_gas_gross = 12 * 1000 * 3600  # kWh/kg to J/kg
+
+        enthalpy_flow_combustion = m_gas_flow * calorific_value_gas_gross
+
+        m_water = self.mass_flow_water + m_water_flow_combustion
+        enthalpy_flow = self.enthalpy_flow + enthalpy_flow_combustion
+
+        return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
+            self.mass_flow_air, m_water, enthalpy_flow, self.humid_air_state.pressure
         )
 
 
