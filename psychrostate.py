@@ -4,7 +4,7 @@ Created on 2024-01-23 12:38:04
 @author: orc
 """
 
-import warnings # pylint: disable=unused-import
+import warnings  # pylint: disable=unused-import
 from typing import Self
 from math import exp, isclose
 
@@ -135,32 +135,44 @@ def get_sat_vap_pressure(
     doi: 10.1080/01457639808939929.
     """
     if not ignore_valid_range:
-        if -50 > t_dry_bulb or 150 < t_dry_bulb:
-            #     raise ValueError(f"Invalid temperature range -50°C<=t<=150°C; {t_dry_bulb:=.2f}")
-            print(f"Invalid temperature range -50°C<=t<=150°C; t = {t_dry_bulb}°C")
+        if -100 > t_dry_bulb or 150 < t_dry_bulb:
+            raise ValueError(
+                f"Invalid temperature range -50°C<=t<=150°C; {t_dry_bulb:=.2f}"
+            )
+            # print(f"Invalid temperature range -50°C<=t<=150°C; t = {t_dry_bulb}°C")
 
-    pc = 220.64e5  # Pa
-    t_c = 647.096  # K
+    if 0.01 <= t_dry_bulb:
+        p_c = 220.64e5  # Pa
+        t_c = 647.096  # K
 
-    t = 1 - (273.15 + t_dry_bulb) / t_c
-    a1 = -7.85951783
-    a2 = 1.84408259
-    a3 = -11.7866497
-    a4 = 22.6807411
-    a5 = -15.9618719
-    a6 = 1.80122502
+        t = 1 - (273.15 + t_dry_bulb) / t_c
+        a1 = -7.85951783
+        a2 = 1.84408259
+        a3 = -11.7866497
+        a4 = 22.6807411
+        a5 = -15.9618719
+        a6 = 1.80122502
 
-    return pc * exp(
-        (t_c / (273.15 + t_dry_bulb))
-        * (
-            a1 * t
-            + a2 * t**1.5
-            + a3 * t**3
-            + a4 * t**3.5
-            + a5 * t**4
-            + a6 * t**7.5
+        p_s = p_c * exp(
+            (t_c / (273.15 + t_dry_bulb))
+            * (a1 * t + a2 * t**1.5 + a3 * t**3 + a4 * t**3.5 + a5 * t**4 + a6 * t**7.5)
         )
-    )
+        return p_s
+    else: # TODO
+        p_t = 611.657
+        t_t = 273.16
+
+        t = 1 - (273.15 + t_dry_bulb) / t_t
+
+        b1 = 21.2144006
+        b2 = 27.3203819
+        b3 = 1.70333333
+
+        p_s = p_t * exp(
+            (t_t / (273.15 + t_dry_bulb))
+            * (b1 * t**0.00333333333 + b2 * t**1.20666667 + b3 * t**1.70333333)
+        )
+        return p_s
 
 
 def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:

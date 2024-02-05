@@ -13,15 +13,21 @@ p = pss.get_pressure_from_height(300)
 
 hafs = []
 
-has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=44, rel_hum=0.5, pressure=p)
-hafs.append(psf.HumidAirFlow(24000 / 3600, has))
+has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=60, rel_hum=0.6, pressure=p)
+hafs.append(psf.HumidAirFlow(8000 / 3600, has))
 
-has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.2, pressure=p)
-hafs.append(psf.HumidAirFlow(6000 / 3600, has))
+has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=1, rel_hum=0.10, pressure=p)
+hafs.append(psf.HumidAirFlow(2000 / 3600, has))
 
-has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=12, rel_hum=0.3, pressure=p)
-hafs.append(psf.HumidAirFlow(6000 / 3600, has))
+# has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.0, pressure=p)
+# hafs.append(psf.HumidAirFlow(10000 / 3600, has))
 
+# has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=20, rel_hum=0.0, pressure=p)
+# hafs.append(psf.HumidAirFlow(4000 / 3600, has))
+
+
+mix = psf.mix_humid_air_flows(hafs)
+print(mix.str_short())
 
 create_report_mix_humid_air_flows(
     humid_air_flows=hafs,
