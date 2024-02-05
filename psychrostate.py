@@ -173,6 +173,9 @@ def get_sat_vap_pressure(
             * (b1 * t**0.00333333333 + b2 * t**1.20666667 + b3 * t**1.70333333)
         )
         return p_s
+    
+    # [1] J. Huang, „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“, Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265–1272, Juni 2018, doi: 10.1175/JAMC-D-17-0334.1.
+
 
 
 def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:
