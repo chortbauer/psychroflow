@@ -5,6 +5,7 @@ Created on 2024-01-23 14:59:00
 """
 
 from dataclasses import dataclass, field
+from numpy.polynomial import Chebyshev
 
 
 @dataclass
@@ -21,6 +22,13 @@ class WaterState:
 
 
 def get_density_water(t: float) -> float:
+    """density of water/ice at Temperatur t in °C"""
+    if 0.01 <= t:
+        return get_density_water_liquid(t)
+    return get_density_water_solid(t)
+
+
+def get_density_water_liquid(t: float) -> float:
     """
     [1] C. O. Popiel und J. Wojtkowiak,
     Simple Formulas for Thermophysical Properties of Liquid Water
@@ -48,6 +56,73 @@ def get_density_water(t: float) -> float:
         + b5 * tau ** (43 / 3)
         + b6 * tau ** (110 / 3)
     )
+
+
+def get_density_water_solid(t: float) -> float:
+    """density of water ice
+    Chebyshev polynomial(5) fittet to data from Allan H. Harvey, "PROPERTIES OF ICE AND SUPERCOOLED WATER"
+    Feistel, R., and Wagner, W., "A New Equation of State for H2O Ice Ih", J. Phys. Chem. Ref. Data 35, 1021 (2006)
+    """
+    if 0.01 < t or -273.15 > t:
+        raise ValueError(f"Temperature range: -273.15°C < T < 0.01°C; GOT:{t=}°C")
+
+    # data to obtain Chebyshev polynomial
+    # x = [
+    #     -0,
+    #     -10,
+    #     -20,
+    #     -30,
+    #     -40,
+    #     -50,
+    #     -60,
+    #     -80,
+    #     -100,
+    #     -120,
+    #     -140,
+    #     -160,
+    #     -180,
+    #     -200,
+    #     -220,
+    #     -240,
+    #     -260,
+    # ]
+
+    # y = [
+    #     0.9167,
+    #     0.9182,
+    #     0.9196,
+    #     0.9209,
+    #     0.9222,
+    #     0.9235,
+    #     0.9247,
+    #     0.9269,
+    #     0.9288,
+    #     0.9304,
+    #     0.9317,
+    #     0.9326,
+    #     0.9332,
+    #     0.9336,
+    #     0.9337,
+    #     0.9338,
+    #     0.9338,
+    # ]
+
+    # cheby_fit = Chebyshev.fit(x, y, 5)
+    # rho = Chebyshev(coef=cheby_fit.coef, domain=cheby_fit.domain)
+
+    # Chebyshev polynomial for density of water ice
+    rho = Chebyshev(
+        coef=[
+            0.92801793,
+            -0.00842493,
+            -0.00290406,
+            -9.85882725e-05,
+            0.00015617,
+            -1.79696265e-05,
+        ],
+        domain=[-260.0, 0.0],
+    )
+    return rho(t)
 
 
 def get_enthalpy_water(t: float) -> float:
