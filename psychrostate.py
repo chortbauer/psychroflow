@@ -126,56 +126,98 @@ def get_sat_vap_pressure(
     t_dry_bulb: float, *, ignore_valid_range: bool = False
 ) -> float:
     """
-    calculate the saturation vapor pressure of water
-
-    [1] C. O. Popiel und J. Wojtkowiak,
-    „Simple Formulas for Thermophysical Properties of Liquid Water
-    for Heat Transfer Calculations (from 0°C to 150°C)“,
-    Heat Transfer Engineering, Bd. 19, Nr. 3, S. 87-101, Jan. 1998,
-    doi: 10.1080/01457639808939929.
+    calculate the saturation vapor pressure of water / ice
     """
     if not ignore_valid_range:
-        if -100 > t_dry_bulb or 150 < t_dry_bulb:
+        if -223.15 > t_dry_bulb or 373.95 < t_dry_bulb:
             raise ValueError(
-                f"Invalid temperature range -50°C<=t<=150°C; {t_dry_bulb:=.2f}"
+                f"Invalid temperature range -223.15°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
             )
-            # print(f"Invalid temperature range -50°C<=t<=150°C; t = {t_dry_bulb}°C")
+
+    ignore_valid_range = False # HACK
 
     if 0.01 <= t_dry_bulb:
-        p_c = 220.64e5  # Pa
-        t_c = 647.096  # K
-
-        t = 1 - (273.15 + t_dry_bulb) / t_c
-        a1 = -7.85951783
-        a2 = 1.84408259
-        a3 = -11.7866497
-        a4 = 22.6807411
-        a5 = -15.9618719
-        a6 = 1.80122502
-
-        p_s = p_c * exp(
-            (t_c / (273.15 + t_dry_bulb))
-            * (a1 * t + a2 * t**1.5 + a3 * t**3 + a4 * t**3.5 + a5 * t**4 + a6 * t**7.5)
+        return get_sat_vap_pressure_liquid_water(
+            t_dry_bulb=t_dry_bulb, ignore_valid_range=ignore_valid_range
         )
-        return p_s
-    else: # TODO
-        p_t = 611.657
-        t_t = 273.16
 
-        t = 1 - (273.15 + t_dry_bulb) / t_t
+    return get_sat_vap_pressure_water_ice(
+        t_dry_bulb=t_dry_bulb, ignore_valid_range=ignore_valid_range
+    )
 
-        b1 = 21.2144006
-        b2 = 27.3203819
-        b3 = 1.70333333
 
-        p_s = p_t * exp(
-            (t_t / (273.15 + t_dry_bulb))
-            * (b1 * t**0.00333333333 + b2 * t**1.20666667 + b3 * t**1.70333333)
+def get_sat_vap_pressure_liquid_water(
+    t_dry_bulb: float, *, ignore_valid_range: bool = False
+) -> float:
+    """
+    calculate the saturation vapor pressure of water
+
+    [1] J. Huang, „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“,
+    Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265–1272, Juni 2018, doi: 10.1175/JAMC-D-17-0334.1.
+    """
+    if not ignore_valid_range:
+        if 0.01 > t_dry_bulb or 373.95 < t_dry_bulb:
+            raise ValueError(
+                f"Invalid temperature range 0.01°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
+            )
+
+    p_c = 22.064e6  # Pa
+    t_c = 647.096  # K
+
+    t_ = 1 - (273.15 + t_dry_bulb) / t_c
+    a1 = -7.85951783
+    a2 = 1.84408259
+    a3 = -11.7866497
+    a4 = 22.6807411
+    a5 = -15.9618719
+    a6 = 1.80122502
+
+    p_s = p_c * exp(
+        (t_c / (273.15 + t_dry_bulb))
+        * (
+            a1 * t_
+            + a2 * t_**1.5
+            + a3 * t_**3
+            + a4 * t_**3.5
+            + a5 * t_**4
+            + a6 * t_**7.5
         )
-        return p_s
-    
-    # [1] J. Huang, „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“, Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265–1272, Juni 2018, doi: 10.1175/JAMC-D-17-0334.1.
+    )
+    return p_s
 
+
+def get_sat_vap_pressure_water_ice(
+    t_dry_bulb: float, *, ignore_valid_range: bool = False
+) -> float:
+    """
+    calculate the saturation vapor pressure of water
+
+    [1] W. Wagner, T. Riethmann, R. Feistel, und A. H. Harvey,
+    „New Equations for the Sublimation Pressure and Melting Pressure of H2O Ice Ih“,
+    Journal of Physical and Chemical Reference Data, Bd. 40, Nr. 4, S. 043103, Dez. 2011,
+    doi: 10.1063/1.3657937.
+    """
+    if not ignore_valid_range:
+        if -223.15 > t_dry_bulb or 0.01 < t_dry_bulb:
+            raise ValueError(
+                f"Invalid temperature range -223.15°C<=t<=0.01°C; {t_dry_bulb:=.2f}"
+            )
+
+    p_t = 611.657
+    t_t = 273.16
+
+    t = 273.15 + t_dry_bulb
+    t_ = t / t_t
+
+    b1 = -0.212144006e2
+    b2 = 0.273203819e2
+    b3 = -0.610598130e1
+
+    p_s = p_t * exp(
+        (t_t / t)
+        * (b1 * t_**0.333333333e-2 + b2 * t_**0.120666667e1 + b3 * t_**0.170333333e1)
+    )
+    return p_s
 
 
 def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:

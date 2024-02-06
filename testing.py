@@ -61,7 +61,8 @@ hafs = []
 # pp(haf1.add_water_flow(wf_s))
 
 
-ts = np.linspace(-100, 0,6)
+ts = [-100, -80, -60 - 40, -20, 0, 0.01, 20, 40, 60, 80, 100]
+
 
 import matplotlib.pyplot as plt
 
