@@ -10,6 +10,7 @@ Created on 2024-01-22 07:30:30
 import pprint
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import psychroflow as psf
 import psychrostate as pss
@@ -59,18 +60,3 @@ hafs = []
 # pp(haf)
 
 # pp(haf1.add_water_flow(wf_s))
-
-
-ts = [-100, -80, -60 - 40, -20, 0, 0.01, 20, 40, 60, 80, 100]
-
-
-import matplotlib.pyplot as plt
-
-# fig, ax = plt.subplots(1)
-
-# ax.plot(ts, np.vectorize(pss.get_sat_vap_pressure)(ts,ignore_valid_range=True))
-
-# fig.savefig("output/test.png")
-
-for t in ts:
-    print(f"{t}°C, {pss.get_sat_vap_pressure(t, ignore_valid_range=True)}")

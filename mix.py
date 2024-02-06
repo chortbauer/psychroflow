@@ -12,7 +12,7 @@ p = pss.get_pressure_from_height(300)
 
 hafs = []
 
-has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=95, rel_hum=0.6, pressure=p)
+has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=7, rel_hum=0.6, pressure=p)
 hafs.append(psf.HumidAirFlow(8000 / 3600, has))
 
 # has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=1, rel_hum=0.10, pressure=p)
