@@ -122,44 +122,32 @@ class HumidAirState:
         )
 
 
-def get_sat_vap_pressure(
-    t_dry_bulb: float, *, ignore_valid_range: bool = False
-) -> float:
+def get_sat_vap_pressure(t_dry_bulb: float) -> float:
     """
     calculate the saturation vapor pressure of water / ice
     """
-    if not ignore_valid_range:
-        if -223.15 > t_dry_bulb or 373.95 < t_dry_bulb:
-            raise ValueError(
-                f"Invalid temperature range -223.15°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
-            )
-
-    ignore_valid_range = False # HACK
-
-    if 0.01 <= t_dry_bulb:
-        return get_sat_vap_pressure_liquid_water(
-            t_dry_bulb=t_dry_bulb, ignore_valid_range=ignore_valid_range
+    if -223.15 > t_dry_bulb or 373.95 < t_dry_bulb:
+        raise ValueError(
+            f"Invalid temperature range -223.15°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
         )
 
-    return get_sat_vap_pressure_water_ice(
-        t_dry_bulb=t_dry_bulb, ignore_valid_range=ignore_valid_range
-    )
+    if 0.01 <= t_dry_bulb:
+        return get_sat_vap_pressure_liquid_water(t_dry_bulb=t_dry_bulb)
+
+    return get_sat_vap_pressure_water_ice(t_dry_bulb=t_dry_bulb)
 
 
-def get_sat_vap_pressure_liquid_water(
-    t_dry_bulb: float, *, ignore_valid_range: bool = False
-) -> float:
+def get_sat_vap_pressure_liquid_water(t_dry_bulb: float) -> float:
     """
     calculate the saturation vapor pressure of water
 
     [1] J. Huang, „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“,
     Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265–1272, Juni 2018, doi: 10.1175/JAMC-D-17-0334.1.
     """
-    if not ignore_valid_range:
-        if 0.01 > t_dry_bulb or 373.95 < t_dry_bulb:
-            raise ValueError(
-                f"Invalid temperature range 0.01°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
-            )
+    if 0.01 > t_dry_bulb or 373.95 < t_dry_bulb:
+        raise ValueError(
+            f"Invalid temperature range 0.01°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
+        )
 
     p_c = 22.064e6  # Pa
     t_c = 647.096  # K
@@ -215,7 +203,11 @@ def get_sat_vap_pressure_water_ice(
 
     p_s = p_t * exp(
         (t_t / t)
-        * (b1 * t_**0.333333333e-2 + b2 * t_**0.120666667e1 + b3 * t_**0.170333333e1)
+        * (
+            b1 * t_**0.333333333e-2
+            + b2 * t_**0.120666667e1
+            + b3 * t_**0.170333333e1
+        )
     )
     return p_s
 
@@ -241,9 +233,9 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
         return -196
 
     def fun(t):
-        return vap_pres - get_sat_vap_pressure(t, ignore_valid_range=True)
+        return vap_pres - get_sat_vap_pressure(t)
 
-    sol = optimize.root_scalar(fun, bracket=[-196, 150])
+    sol = optimize.root_scalar(fun, bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root
@@ -260,6 +252,9 @@ def get_hum_ratio_from_vap_press(vap_pres: float, pressure: float) -> float:
         )
 
     hum_ratio = 0.621945 * vap_pres / (pressure - vap_pres)
+
+    if 0 > hum_ratio:
+        raise ValueError("Vapour pressure water > pressure")
 
     return hum_ratio
 
@@ -332,7 +327,8 @@ def get_sat_hum_ratio(t_dry_bulb: float, pressure: float) -> float:
     sat_vap_pressure = get_sat_vap_pressure(t_dry_bulb)
 
     if sat_vap_pressure > pressure:
-        raise ValueError("sat_vap_pressure > pressure; Pure steam is not implemented")
+        return float("inf")  # TODO is this ok?
+        # raise ValueError("sat_vap_pressure > pressure; Pure steam is not implemented")
 
     return 0.621945 * sat_vap_pressure / (pressure - sat_vap_pressure)
 
@@ -368,7 +364,7 @@ def get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
     def fun(t):
         return tot_enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    sol = optimize.root_scalar(fun, bracket=[-50, 80])
+    sol = optimize.root_scalar(fun, bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root
