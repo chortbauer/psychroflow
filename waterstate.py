@@ -63,8 +63,8 @@ def get_density_water_solid(t: float) -> float:
     Chebyshev polynomial(5) fittet to data from Allan H. Harvey, "PROPERTIES OF ICE AND SUPERCOOLED WATER"
     Feistel, R., and Wagner, W., "A New Equation of State for H2O Ice Ih", J. Phys. Chem. Ref. Data 35, 1021 (2006)
     """
-    if 0.01 < t or -273.15 > t:
-        raise ValueError(f"Temperature range: -273.15°C < T < 0.01°C; GOT:{t=}°C")
+    if 0.01 < t or -260 > t:
+        raise ValueError(f"Temperature range: -260°C < T < 0.01°C; GOT:{t=}°C")
 
     # data to obtain Chebyshev polynomial
     # x = [
