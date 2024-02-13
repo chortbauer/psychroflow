@@ -203,11 +203,7 @@ def get_sat_vap_pressure_water_ice(
 
     p_s = p_t * exp(
         (t_t / t)
-        * (
-            b1 * t_**0.333333333e-2
-            + b2 * t_**0.120666667e1
-            + b3 * t_**0.170333333e1
-        )
+        * (b1 * t_**0.333333333e-2 + b2 * t_**0.120666667e1 + b3 * t_**0.170333333e1)
     )
     return p_s
 
@@ -235,12 +231,12 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
     def fun(t):
         return vap_pres - get_sat_vap_pressure(t)
 
-    sol = optimize.root_scalar(fun, bracket=[-223.1, 373.9])
+    sol = optimize.root_scalar(fun, method="toms748", bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root
-    else:
-        raise ValueError("Root not converged: " + sol.flag)
+
+    raise ValueError("Root not converged: " + sol.flag)
 
 
 def get_hum_ratio_from_vap_press(vap_pres: float, pressure: float) -> float:
@@ -364,7 +360,7 @@ def get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
     def fun(t):
         return tot_enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    sol = optimize.root_scalar(fun, bracket=[-223.1, 373.9])
+    sol = optimize.root_scalar(fun, method="toms748", bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root

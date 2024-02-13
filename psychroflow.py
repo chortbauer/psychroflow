@@ -136,7 +136,9 @@ class HumidAirFlow:
                 return 1 - rel_hum_target
             return rel_hum_mix - rel_hum_target
 
-        sol = optimize.root_scalar(fun, bracket=[0, self.volume_flow / 1e0], xtol=1e-24)
+        sol = optimize.root_scalar(
+            fun, method="toms748", bracket=[0, self.volume_flow / 1e0], xtol=1e-24
+        )
 
         if sol.converged:
             return WaterFlow(sol.root, WaterState(t_water))
@@ -159,6 +161,51 @@ class HumidAirFlow:
         return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
             self.mass_flow_air, self.mass_flow_water, enthalpy_flow, pressure
         )
+
+    def get_enthalpy_to_rel_hum(self, rel_hum_target: float) -> float:
+        """get the enthalpy_flow [W] needed to reach a target relative humidity"""
+
+        if 1 < rel_hum_target:
+            raise ValueError("Relative humidity target cannot be > 1")
+
+        if (not isclose(0, self.humid_air_state.hum_ratio)) and isclose(
+            0, rel_hum_target
+        ):
+            raise ValueError("Relative humidity target cannot be 0")
+
+        def fun(h_f):
+            rel_hum = self.add_enthalpy(h_f).humid_air_state.rel_hum
+
+            return rel_hum - rel_hum_target
+
+        has_lower_bound = HumidAirState.from_t_dry_bulb_hum_ratio(
+            self.humid_air_state.t_dew_point,
+            self.humid_air_state.hum_ratio,
+            pressure=self.humid_air_state.pressure,
+        )
+        h_f_lower_bound = (
+            has_lower_bound.moist_air_enthalpy - self.humid_air_state.moist_air_enthalpy
+        ) * self.mass_flow_air
+
+
+        has_upper_bound = HumidAirState.from_t_dry_bulb_hum_ratio(
+            150,
+            self.humid_air_state.hum_ratio,
+            pressure=self.humid_air_state.pressure,
+        )
+
+        h_f_upper_bound = (
+            has_upper_bound.moist_air_enthalpy - self.humid_air_state.moist_air_enthalpy
+        ) * self.mass_flow_air
+
+        sol = optimize.root_scalar(
+            fun, method="toms748", bracket=[h_f_lower_bound, h_f_upper_bound]
+        )
+
+        if sol.converged:
+            return sol.root
+
+        raise ValueError("Root not converged: " + sol.flag)
 
     # TODO test
     # TODO is the gas ratio valid after combustion?
