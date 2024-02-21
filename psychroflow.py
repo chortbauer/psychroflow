@@ -137,7 +137,7 @@ class HumidAirFlow:
             return rel_hum_mix - rel_hum_target
 
         sol = optimize.root_scalar(
-            fun, method="toms748", bracket=[0, self.volume_flow / 1e0], xtol=1e-24
+            fun, method="brentq", bracket=[0, self.volume_flow / 1e0], xtol=1e-24
         )
 
         if sol.converged:
@@ -187,7 +187,6 @@ class HumidAirFlow:
             has_lower_bound.moist_air_enthalpy - self.humid_air_state.moist_air_enthalpy
         ) * self.mass_flow_air
 
-
         has_upper_bound = HumidAirState.from_t_dry_bulb_hum_ratio(
             150,
             self.humid_air_state.hum_ratio,
@@ -199,7 +198,7 @@ class HumidAirFlow:
         ) * self.mass_flow_air
 
         sol = optimize.root_scalar(
-            fun, method="toms748", bracket=[h_f_lower_bound, h_f_upper_bound]
+            fun, method="brentq", bracket=[h_f_lower_bound, h_f_upper_bound]
         )
 
         if sol.converged:
@@ -238,6 +237,10 @@ class AirWaterFlow:
     humid_air_flow: HumidAirFlow
     water_flow: WaterFlow
     dry: bool = field(default=True, init=False)
+    mass_flow_air: float = field(init=False)
+    mass_flow_water: float = field(init=False)
+    mass_flow: float = field(init=False)
+    enthalpy_flow: float = field(init=False)
 
     def __post_init__(self):
         # TODO allow no air
@@ -254,6 +257,15 @@ class AirWaterFlow:
             # if there is liquid water the air has to be saturated
             if not isclose(self.humid_air_flow.humid_air_state.rel_hum, 1):
                 raise ValueError("Air over liquid water has to be saturated")
+
+        self.mass_flow_air = self.humid_air_flow.mass_flow_air
+        self.mass_flow_water = (
+            self.humid_air_flow.mass_flow_water + self.water_flow.mass_flow
+        )
+        self.mass_flow = self.mass_flow_air + self.mass_flow_water
+        self.enthalpy_flow = (
+            self.humid_air_flow.enthalpy_flow + self.water_flow.enthalpy_flow
+        )
 
     @classmethod
     def from_humid_air_flow(cls, haf: HumidAirFlow) -> Self:
@@ -339,6 +351,16 @@ class AirWaterFlow:
         enthalpy_flow = haf_in.enthalpy_flow + wf_in.enthalpy_flow
         pressure = haf_in.humid_air_state.pressure
         return cls.from_m_air_m_water_enthalpy_flow(
+            m_air, m_water, enthalpy_flow, pressure
+        )
+
+    def add_enthalpy(self, enthalpy_flow: float) -> "AirWaterFlow":
+        """add enthalpy_flow [W] to AirWaterFlow"""
+        m_air = self.mass_flow_air
+        m_water = self.mass_flow_water
+        enthalpy_flow = self.enthalpy_flow + enthalpy_flow
+        pressure = self.humid_air_flow.humid_air_state.pressure
+        return AirWaterFlow.from_m_air_m_water_enthalpy_flow(
             m_air, m_water, enthalpy_flow, pressure
         )
 

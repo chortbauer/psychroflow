@@ -15,12 +15,6 @@ from scipy import optimize
 import matplotlib.pyplot as plt
 
 import psychroflow as psf
-# import psychrostate as pss
-# import waterstate as ws
-
-# importlib.reload(psf)
-# importlib.reload(pss)
-# importlib.reload(ws)
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
@@ -31,13 +25,30 @@ pp = PrettyPrinter.pprint
 
 hafs = []
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(50, 0.3)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(30, 0.3)
 haf1 = psf.HumidAirFlow(1, has1)
 hafs.append(haf1)
-pp(haf1)
+# pp(haf1)
+
+has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.9)
+hafs.append(psf.HumidAirFlow(1, has))
+
+# has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.0, pressure=p)
+# hafs.append(psf.HumidAirFlow(10000 / 3600, has))
+
+# has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=20, rel_hum=0.0, pressure=p)
+# hafs.append(psf.HumidAirFlow(4000 / 3600, has))
 
 
-rel_hum_target = 0.999
+mix = psf.mix_humid_air_flows(hafs)
+print(mix.str_short())
+
+# wf = psf.WaterFlow.from_volume_flow_temperature(0, temp)
+
+# awf = psf.AirWaterFlow.from_humid_air_flow(haf1)
+# pp(awf)
+
+# pp(awf.add_enthalpy(-5e4))
 
 # def fun(h_f):
 #     rel_hum = haf1.add_enthalpy(h_f).humid_air_state.rel_hum
@@ -57,9 +68,8 @@ rel_hum_target = 0.999
 #     has_lower_bound.moist_air_enthalpy - haf1.humid_air_state.moist_air_enthalpy
 # ) * haf1.mass_flow_air
 
-# sol = optimize.root_scalar(fun, method="toms748", bracket=[h_f_lower_bound, 0])
+# sol = optimize.root_scalar(fun, method="brentq", bracket=[h_f_lower_bound, 0])
 
-pp(haf1.add_enthalpy(haf1.get_enthalpy_to_rel_hum(rel_hum_target)))
 
 
 

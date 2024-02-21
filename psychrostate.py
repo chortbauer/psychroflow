@@ -231,7 +231,7 @@ def get_t_dew_point_from_vap_pressure(vap_pres: float) -> float:
     def fun(t):
         return vap_pres - get_sat_vap_pressure(t)
 
-    sol = optimize.root_scalar(fun, method="toms748", bracket=[-223.1, 373.9])
+    sol = optimize.root_scalar(fun, method="brentq", bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root
@@ -360,7 +360,7 @@ def get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
     def fun(t):
         return tot_enthalpy - get_tot_enthalpy_air_water_mix(hum_ratio, t, pressure)
 
-    sol = optimize.root_scalar(fun, method="toms748", bracket=[-223.1, 373.9])
+    sol = optimize.root_scalar(fun, method="brentq", bracket=[-223.1, 373.9])
 
     if sol.converged:
         return sol.root
