@@ -1,139 +1,137 @@
 <html>
-<style>
+  <style>
     body {
-        font-family: "Fira Sans", Arial, sans-serif;
+      font-family: "Fira Sans", Arial, sans-serif;
     }
 
     p.shifted {
-        margin-left: 30px;
+      margin-left: 30px;
     }
 
     table {
-        border-collapse: collapse;
+      border-collapse: collapse;
     }
 
     table.header {
-        border: none;
-        margin-top: 5px;
-        margin-bottom: 5px;
-        margin-left: 30px;
+      border: none;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      margin-left: 30px;
     }
 
     table.header td:nth-child(1) {
-        text-align: end;
+      text-align: end;
     }
 
     table.header td:nth-child(2) {
-        padding-left: 0.4em;
+      padding-left: 0.4em;
     }
 
     table.mix {
-        border-collapse: collapse;
-        text-align: center;
-        margin-left: auto;
-        margin-right: auto;
+      border-collapse: collapse;
+      text-align: center;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     table.mix td {
-        border-left: 1px solid black;
-        border-right: 1px solid black;
-        padding: 5px 15px;
+      border-left: 1px solid black;
+      border-right: 1px solid black;
+      padding: 5px 15px;
     }
 
     table.mix td:first-child {
-        border-left: none;
+      border-left: none;
     }
 
     table.mix td:last-child {
-        border-right: none;
+      border-right: none;
     }
 
     table.mix .border-bottom {
-        border-bottom: 1px solid black;
+      border-bottom: 1px solid black;
     }
 
     table.mix .right {
-        font-family: "Fira Code";
-        /* font-family: "Fira Mono"; */
-        text-align: right;
+      font-family: "Fira Code";
+      /* font-family: "Fira Mono"; */
+      text-align: right;
     }
 
     table.mix tr:last-child {
-        border-top: 1px solid black;
-        border-bottom: 3px double black;
+      border-top: 1px solid black;
+      border-bottom: 3px double black;
     }
 
     table.mix td.c1 {
-        text-align: center;
+      text-align: center;
     }
-</style>
+  </style>
 
-<head>
-    <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8" />
     <!-- <link href="report.css" rel="stylesheet"> -->
     <title>Report</title>
     <!-- <meta name="description" content="Report example"> -->
-</head>
+  </head>
 
-
-<body>
+  <body>
     <h2>{{title_text}}</h2>
-    <div style="border: 2px solid black; margin-bottom: 2em;">
-
-        <table class="header">
-            <tr>
-                <td>Projekt:</td>
-                <td>{{projekt_name}}</td>
-            </tr>
-            <tr>
-                <td>Nr:</td>
-                <td>{{projekt_nr}}</td>
-            </tr>
-            <tr>
-                <td>Datum:</td>
-                <td>{{date}}</td>
-            </tr>
-        </table>
+    <div style="border: 2px solid black; margin-bottom: 2em">
+      <table class="header">
+        <tr>
+          <td>Projekt:</td>
+          <td>{{projekt_name}}</td>
+        </tr>
+        <tr>
+          <td>Nr:</td>
+          <td>{{projekt_nr}}</td>
+        </tr>
+        <tr>
+          <td>Datum:</td>
+          <td>{{date}}</td>
+        </tr>
+      </table>
     </div>
     <p>Druck: {{druck}} mbar</p>
-    <table class="mix" , style="margin-bottom: 2em;">
-        <tr>
-            <td class="c1">Nr.</td>
-            <td class="c2">Volumenstrom</td>
-            <td class="c3">Temperatur</td>
-            <td class="c3">abs. Feuchte</td>
-            <td class="c3">rel. Feuchte</td>
-            <td class="c3">Taupunkt</td>
-        </tr>
-        <tr class="border-bottom">
-            <td class="c1"></td>
-            <td class="c2">m&sup3/h</td>
-            <td class="c3">°C</td>
-            <td class="c3">kg<sub>W</sub>/kg<sub>L</sub></td>
-            <td class="c3">%</td>
-            <td class="c3">°C</td>
-        </tr>
-        {% for item in items_mix %}
-        <tr class="right">
-            <td class="c1">{{item.id}}</td>
-            <td class="c2">{{item.v}}</td>
-            <td class="c3">{{item.t}}</td>
-            <td class="c3">{{item.x}}</td>
-            <td class="c3">{{item.rh}}</td>
-            <td class="c3">{{item.ttp}}</td>
-        </tr>
-        {% endfor %}
-        <tr class="right">
-            <td class="c1">Σ</td>
-            <td class="c2">{{state_mixed.v}}</td>
-            <td class="c3">{{state_mixed.t}}</td>
-            <td class="c3">{{state_mixed.x}}</td>
-            <td class="c3">{{state_mixed.rh}}</td>
-            <td class="c3">{{state_mixed.ttp}}</td>
-        </tr>
+    <table class="mix" , style="margin-bottom: 2em">
+      <tr>
+        <td class="c1">Nr.</td>
+        <td class="c2">Volumenstrom</td>
+        <td class="c3">Temperatur</td>
+        <td class="c3">abs. Feuchte</td>
+        <td class="c3">rel. Feuchte</td>
+        <!-- TODO don't print rel humidity if not valid (psat > p) -->
+        <td class="c3">Taupunkt</td>
+      </tr>
+      <tr class="border-bottom">
+        <td class="c1"></td>
+        <td class="c2">m&sup3/h</td>
+        <td class="c3">°C</td>
+        <td class="c3">kg<sub>W</sub>/kg<sub>L</sub></td>
+        <td class="c3">%</td>
+        <td class="c3">°C</td>
+      </tr>
+      {% for item in items_mix %}
+      <tr class="right">
+        <td class="c1">{{item.id}}</td>
+        <td class="c2">{{item.v}}</td>
+        <td class="c3">{{item.t}}</td>
+        <td class="c3">{{item.x}}</td>
+        <td class="c3">{{item.rh}}</td>
+        <td class="c3">{{item.ttp}}</td>
+      </tr>
+      {% endfor %}
+      <tr class="right">
+        <td class="c1">Σ</td>
+        <td class="c2">{{state_mixed.v}}</td>
+        <td class="c3">{{state_mixed.t}}</td>
+        <td class="c3">{{state_mixed.x}}</td>
+        <td class="c3">{{state_mixed.rh}}</td>
+        <td class="c3">{{state_mixed.ttp}}</td>
+      </tr>
     </table>
     <p>Abstand Temperatur zu Taupunkt in Mischung: {{delta_ttp_t}} °C</p>
-    <p style="margin-top: 2em;">erstellt von {{author}}</p>
-</body>
-
+    <p style="margin-top: 2em">erstellt von {{author}}</p>
+  </body>
 </html>
