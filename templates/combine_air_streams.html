@@ -101,6 +101,7 @@
             <td class="c1">Nr.</td>
             <td class="c2">Volumenstrom</td>
             <td class="c3">Temperatur</td>
+            <td class="c3">abs. Feuchte</td>
             <td class="c3">rel. Feuchte</td>
             <td class="c3">Taupunkt</td>
         </tr>
@@ -108,6 +109,7 @@
             <td class="c1"></td>
             <td class="c2">m&sup3/h</td>
             <td class="c3">°C</td>
+            <td class="c3">kg<sub>W</sub>/kg<sub>L</sub></td>
             <td class="c3">%</td>
             <td class="c3">°C</td>
         </tr>
@@ -116,6 +118,7 @@
             <td class="c1">{{item.id}}</td>
             <td class="c2">{{item.v}}</td>
             <td class="c3">{{item.t}}</td>
+            <td class="c3">{{item.x}}</td>
             <td class="c3">{{item.rh}}</td>
             <td class="c3">{{item.ttp}}</td>
         </tr>
@@ -124,6 +127,7 @@
             <td class="c1">Σ</td>
             <td class="c2">{{state_mixed.v}}</td>
             <td class="c3">{{state_mixed.t}}</td>
+            <td class="c3">{{state_mixed.x}}</td>
             <td class="c3">{{state_mixed.rh}}</td>
             <td class="c3">{{state_mixed.ttp}}</td>
         </tr>

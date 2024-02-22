@@ -33,6 +33,7 @@ def create_report_mix_humid_air_flows(
             id=i + 1,
             v=f"{haf.volume_flow*3600:,.1f}".replace(",", " ").replace(".", ","),
             t=f"{haf.humid_air_state.t_dry_bulb:.1f}".replace(".", ","),
+            x=f"{haf.humid_air_state.hum_ratio:.3f}".replace(".", ","),
             rh=f"{haf.humid_air_state.rel_hum*100:.1f}".replace(".", ","),
             ttp=f"{haf.humid_air_state.t_dew_point:.1f}".replace(".", ","),
         )
@@ -45,6 +46,7 @@ def create_report_mix_humid_air_flows(
             ".", ","
         ),
         t=f"{comb_air_stream.humid_air_state.t_dry_bulb:.1f}".replace(".", ","),
+        x=f"{comb_air_stream.humid_air_state.hum_ratio:.3f}".replace(".", ","),
         rh=f"{comb_air_stream.humid_air_state.rel_hum*100:.1f}".replace(".", ","),
         ttp=f"{comb_air_stream.humid_air_state.t_dew_point:.1f}".replace(".", ","),
     )
