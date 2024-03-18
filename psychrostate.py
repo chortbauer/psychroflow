@@ -141,8 +141,10 @@ def get_sat_vap_pressure_liquid_water(t_dry_bulb: float) -> float:
     """
     calculate the saturation vapor pressure of water
 
-    [1] J. Huang, „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“,
-    Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265–1272, Juni 2018, doi: 10.1175/JAMC-D-17-0334.1.
+    [1] J. Huang,
+    „A Simple Accurate Formula for Calculating Saturation Vapor Pressure of Water and Ice“,
+    Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265-1272, Juni 2018,
+    doi: 10.1175/JAMC-D-17-0334.1.
     """
     if 0.01 > t_dry_bulb or 373.95 < t_dry_bulb:
         raise ValueError(
