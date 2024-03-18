@@ -25,13 +25,16 @@ pp = PrettyPrinter.pprint
 
 hafs = []
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(30, 0.3)
-haf1 = psf.HumidAirFlow(1, has1)
-hafs.append(haf1)
-# pp(haf1)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(32, 0.18)
+pp(has1)
 
-has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.9)
-hafs.append(psf.HumidAirFlow(1, has))
+pp(psf.HumidAirState.from_t_dry_bulb_hum_ratio(6, has1.hum_ratio))
+
+# has2 = psf.HumidAirState.from_t_dry_bulb_hum_ratio(22, hum_ratio=has1.hum_ratio)
+# pp(has2)
+
+# has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=10, rel_hum=0.9)
+# hafs.append(psf.HumidAirFlow(1, has))
 
 # has = psf.HumidAirState.from_t_dry_bulb_rel_hum(t_dry_bulb=-10, rel_hum=0.0, pressure=p)
 # hafs.append(psf.HumidAirFlow(10000 / 3600, has))
@@ -40,8 +43,8 @@ hafs.append(psf.HumidAirFlow(1, has))
 # hafs.append(psf.HumidAirFlow(4000 / 3600, has))
 
 
-mix = psf.mix_humid_air_flows(hafs)
-print(mix.str_short())
+# mix = psf.mix_humid_air_flows(hafs)
+# print(mix.str_short())
 
 # wf = psf.WaterFlow.from_volume_flow_temperature(0, temp)
 
