@@ -70,6 +70,14 @@ class HumidAirFlow:
         )
 
     @classmethod
+    def from_m_air_HumidAirState(
+        cls, mass_flow_air: float, humid_air_state: HumidAirState
+    ) -> Self:
+        """create humid air flow from mass_flow_air and humid_air_state"""
+        volume_flow = mass_flow_air * humid_air_state.moist_air_volume
+        return cls(volume_flow, humid_air_state)
+
+    @classmethod
     def from_m_air_m_water_enthalpy_flow(
         cls, m_air: float, m_water: float, enthalpy_flow: float, pressure: float
     ) -> Self:
@@ -228,6 +236,27 @@ class HumidAirFlow:
     #     return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
     #         m_air, m_water, enthalpy_flow, self.humid_air_state.pressure
     #     )
+
+    def at_reference_point_DIN1334(self, dry: bool = True) -> "HumidAirFlow":
+        if dry:
+            has_din1343_dry = HumidAirState.from_t_dry_bulb_rel_hum(
+                t_dry_bulb=0,
+                rel_hum=0,
+                pressure=101325,
+            )
+            return HumidAirFlow.from_m_air_HumidAirState(
+                self.mass_flow_air, has_din1343_dry
+            )
+        else:
+            # has_din1343_wet = HumidAirState.from_t_dry_bulb_hum_ratio(
+            #     t_dry_bulb=0,
+            #     hum_ratio=self.humid_air_state.hum_ratio,
+            #     pressure=101325,
+            # )
+            # return HumidAirFlow.from_m_air_HumidAirState(
+            #     self.mass_flow_air, has_din1343_wet
+            # )
+            raise ValueError("only dry reference state implemented")
 
 
 @dataclass
