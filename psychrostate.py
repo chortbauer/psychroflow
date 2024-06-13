@@ -120,10 +120,12 @@ class HumidAirState:
             moist_air_enthalpy,
             moist_air_volume,
         )
-    
+
     def at_t_dry_bulb(self, t_dry_bulb: float) -> "HumidAirState":
         """return the humid air state with same humidity ratio at a different temperature"""
-        return HumidAirState.from_t_dry_bulb_hum_ratio(t_dry_bulb=t_dry_bulb, hum_ratio=self.hum_ratio, pressure=self.pressure)
+        return HumidAirState.from_t_dry_bulb_hum_ratio(
+            t_dry_bulb=t_dry_bulb, hum_ratio=self.hum_ratio, pressure=self.pressure
+        )
 
 
 def get_sat_vap_pressure(t_dry_bulb: float) -> float:
