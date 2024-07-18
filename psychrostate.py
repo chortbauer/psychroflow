@@ -4,12 +4,9 @@ Created on 2024-01-23 12:38:04
 @author: orc
 """
 
-import warnings  # pylint: disable=unused-import
 from typing import Self
 from math import exp, isclose
-
 from dataclasses import dataclass
-
 from scipy import optimize
 
 from waterstate import get_enthalpy_water

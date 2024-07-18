@@ -8,11 +8,6 @@ Created on 2024-01-22 07:30:30
 # pylint: disable=unused-import
 
 import pprint
-import importlib
-
-import numpy as np
-from scipy import optimize
-import matplotlib.pyplot as plt
 
 import psychroflow as psf
 
@@ -23,12 +18,22 @@ pp = PrettyPrinter.pprint
 # for t in t_range:
 #     print(t , psf.get_density_water(t))
 
-hafs = []
+# hafs = []
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(32, 0.18)
-pp(has1)
+has0 = psf.HumidAirState.from_t_dry_bulb_rel_hum(30, 0.99)
+has0_heated = has0.at_t_dry_bulb(60)
+haf_sec = psf.HumidAirFlow(0.2, has0_heated)
 
-pp(psf.HumidAirState.from_t_dry_bulb_hum_ratio(6, has1.hum_ratio))
+has4 = psf.HumidAirState.from_t_dry_bulb_rel_hum(40, 0.99)
+haf_pri = psf.HumidAirFlow(1, has4)
+# pp(has4)
+
+mix = psf.mix_humid_air_flows([haf_pri, haf_sec])
+print(mix.str_short())
+
+# pp(has1.at_t_dry_bulb(70))
+
+# pp(psf.HumidAirState.from_t_dry_bulb_hum_ratio(6, has1.hum_ratio))
 
 # has2 = psf.HumidAirState.from_t_dry_bulb_hum_ratio(22, hum_ratio=has1.hum_ratio)
 # pp(has2)

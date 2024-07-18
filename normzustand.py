@@ -8,11 +8,6 @@ Created on 2024-01-22 07:30:30
 # pylint: disable=unused-import
 
 import pprint
-import importlib
-
-import numpy as np
-from scipy import optimize
-import matplotlib.pyplot as plt
 
 import psychroflow as psf
 import psychrostate as pss
@@ -44,8 +39,7 @@ pp(haf2)
 pp(haf2.at_reference_point_DIN1334())
 
 
-
-haf_mix = psf.mix_humid_air_flows([haf1,haf2])
+haf_mix = psf.mix_humid_air_flows([haf1, haf2])
 pp(haf_mix)
 
 pp(haf_mix.at_reference_point_DIN1334())

@@ -622,12 +622,12 @@ def create_report_combine_air_streams(
     )
 
     # save html to file
-    if save_html == True:
+    if save_html:
         with open(filename + ".html", "w", encoding="utf-8") as f:
             f.write(html)
 
     # print html to pdf
-    if save_pdf == True:
+    if save_pdf:
         css = CSS(
             string="""
             @page {size: A4; margin: 2.5cm;}
