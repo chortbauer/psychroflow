@@ -9,9 +9,17 @@ import pprint
 
 import psychrostate as pss
 import psychroflow as psf
+from create_reports import create_report_mix_humid_air_flows
+
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
+
+
+########################################################################
+# define airflows
+########################################################################
+
 
 p = pss.get_pressure_from_height(210)
 
@@ -29,22 +37,18 @@ hafs = []
 # pp(has)
 
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(
-    20, 0.7, p
-)
-haf1 = psf.HumidAirFlow(150_000/3600, has1)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(20, 0.7, p)
+haf1 = psf.HumidAirFlow(150_000 / 3600, has1)
 hafs.append(haf1)
 pp(haf1)
-
 
 
 has2 = psf.HumidAirState.from_t_dry_bulb_hum_ratio(
     30, hum_ratio=has1.hum_ratio, pressure=p
 )
-haf2 = psf.HumidAirFlow(5000/3600, has2)
+haf2 = psf.HumidAirFlow(5000 / 3600, has2)
 hafs.append(haf2)
 pp(haf2)
-
 
 
 # haf_mix = psf.mix_humid_air_flows([haf1,haf2])
@@ -53,16 +57,23 @@ pp(haf2)
 # pp(haf_mix.at_reference_point_DIN1334())
 
 
+########################################################################
+# mix airflows
+########################################################################
+
+
 mix = psf.mix_humid_air_flows(hafs)
 # pp(mix)
 pp(mix.humid_air_state)
 print(mix.str_short())
 
-
 pp(mix.at_reference_point_DIN1334())
 
 
-from create_reports import create_report_mix_humid_air_flows
+########################################################################
+# create pdf report
+########################################################################
+
 
 create_report_mix_humid_air_flows(
     humid_air_flows=hafs,

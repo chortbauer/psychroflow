@@ -19,7 +19,7 @@ P = psf.STANDARD_PRESSURE
 
 def approx(o1: Any, o2: Any) -> None:
     """custom approx functioin that handles dataclasses"""
-    assert type(o1) == type(o2)  # pylint: disable=unidiomatic-typecheck
+    assert isinstance(o1, type(o2))
 
     o1_keys = [v for v in dir(o1) if not v.startswith("__")]
     o2_keys = [v for v in dir(o2) if not v.startswith("__")]
