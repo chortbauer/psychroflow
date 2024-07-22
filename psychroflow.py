@@ -49,6 +49,12 @@ class WaterFlow:
         ws = WaterState(temperature)
         return cls(mass_flow / ws.density, ws)
 
+    def str_short(self) -> str:
+        """returns a short strin repr"""
+        vol = f"V={self.volume_flow*3600:.1f}m³/h"
+        t = f"T={self.water_state.temperature:.1f}°C"
+        return "; ".join([vol, t])
+
 
 @dataclass
 class HumidAirFlow:
@@ -393,6 +399,12 @@ class AirWaterFlow:
             m_air, m_water, enthalpy_flow, pressure
         )
 
+    def str_short(self) -> str:
+        """returns a short strin repr"""
+        haf = self.humid_air_flow.str_short()
+        wf = self.water_flow.str_short()
+        return "; ".join([haf, wf])
+
 
 def mix_two_humid_air_flows(
     haf_in_1: HumidAirFlow, haf_in_2: HumidAirFlow
@@ -405,9 +417,7 @@ def mix_two_humid_air_flows(
     raise ValueError("Condensation")
 
 
-def mix_humid_air_flows(
-    hafs_in: list[HumidAirFlow], allow_condensation=False
-) -> HumidAirFlow | AirWaterFlow:
+def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
     """mix two humid air flows, raises error if there is condensation"""
 
     # haf_out = hafs_in[0]
@@ -427,10 +437,11 @@ def mix_humid_air_flows(
         pressure=pressures[0],
     )
 
-    if awf.dry and not allow_condensation:
+    if awf.dry:
+        # and not allow_condensation:
         return awf.humid_air_flow
-    elif allow_condensation:
-        return awf
+    # elif allow_condensation:
+    #     return awf
     raise ValueError("Condensation")
 
 
