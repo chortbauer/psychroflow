@@ -9,7 +9,7 @@ from math import exp, isclose
 from dataclasses import dataclass
 from scipy import optimize
 
-from waterstate import get_enthalpy_water
+from waterstate import get_enthalpy_water_liquid, get_enthalpy_water_ice
 
 
 STANDARD_PRESSURE = 101_325  # Pa
@@ -389,14 +389,15 @@ def get_tot_enthalpy_air_water_mix(
 
     # saturated air over liquid water
     if t_dry_bulb >= 0.01:
-        enthalpy_water = get_enthalpy_water(t_dry_bulb)
+        enthalpy_water = get_enthalpy_water_liquid(t_dry_bulb)
         tot_enthalpy = (enthalpy_gas + enthalpy_water * (hum_ratio - sat_hum_ratio)) / (
             1 + hum_ratio
         )
         return tot_enthalpy
 
     # saturated air over ice
-    enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
+    # enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
+    enthalpy_ice = get_enthalpy_water_ice(t_dry_bulb)
     tot_enthalpy = (enthalpy_gas + enthalpy_ice * (hum_ratio - sat_hum_ratio)) / (
         1 + hum_ratio
     )

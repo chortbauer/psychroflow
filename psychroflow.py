@@ -405,7 +405,9 @@ def mix_two_humid_air_flows(
     raise ValueError("Condensation")
 
 
-def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
+def mix_humid_air_flows(
+    hafs_in: list[HumidAirFlow], allow_condensation=False
+) -> HumidAirFlow | AirWaterFlow:
     """mix two humid air flows, raises error if there is condensation"""
 
     # haf_out = hafs_in[0]
@@ -425,9 +427,10 @@ def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
         pressure=pressures[0],
     )
 
-    if awf.dry:
+    if awf.dry and not allow_condensation:
         return awf.humid_air_flow
-
+    elif allow_condensation:
+        return awf
     raise ValueError("Condensation")
 
 

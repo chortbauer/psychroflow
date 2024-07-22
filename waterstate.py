@@ -10,7 +10,10 @@ from numpy.polynomial import Chebyshev
 
 @dataclass
 class WaterState:
-    """A state of liquid water"""
+    """A state of water (liquid or ice)"""
+
+    # TODO add steam
+    # TODO don't ignore pressure
 
     temperature: float
     density: float = field(init=False)
@@ -23,9 +26,11 @@ class WaterState:
 
 def get_density_water(t: float) -> float:
     """density of water/ice at Temperatur t in °C"""
-    if 0.01 <= t:
+    if 0.01 <= t and 100 >= t:
         return get_density_water_liquid(t)
-    return get_density_water_solid(t)
+    elif 0.01 < t:
+        return get_density_water_ice(t)
+    raise ValueError("t_dry_bulb > 100°C; Steam not implemented")
 
 
 def get_density_water_liquid(t: float) -> float:
@@ -58,7 +63,7 @@ def get_density_water_liquid(t: float) -> float:
     )
 
 
-def get_density_water_solid(t: float) -> float:
+def get_density_water_ice(t: float) -> float:
     """density of water ice
     Chebyshev polynomial(5) fittet to data from Allan H. Harvey, "PROPERTIES OF ICE AND SUPERCOOLED WATER"
     Feistel, R., and Wagner, W., "A New Equation of State for H2O Ice Ih", J. Phys. Chem. Ref. Data 35, 1021 (2006)
@@ -126,6 +131,15 @@ def get_density_water_solid(t: float) -> float:
 
 
 def get_enthalpy_water(t: float) -> float:
+    """enthalpy of water/ice at Temperatur t in °C"""
+    if 0.01 <= t and 100 >= t:
+        return get_enthalpy_water_liquid(t)
+    elif 0.01 < t:
+        return get_enthalpy_water_ice(t)
+    raise ValueError("t_dry_bulb > 100°C; Steam not implemented")
+
+
+def get_enthalpy_water_liquid(t: float) -> float:
     """
     [1] C. O. Popiel und J. Wojtkowiak,
     Simple Formulas for Thermophysical Properties of Liquid Water
@@ -143,3 +157,26 @@ def get_enthalpy_water(t: float) -> float:
     d6 = 1.724481e-10
 
     return (d1 + d2 * t + d3 * t**2 + d4 * t**3 + d5 * t**4 + d6 * t**5) * 1e3
+
+
+def get_enthalpy_water_ice(t: float) -> float:
+    """
+    Calculate the specific enthalpy of ice at a given temperature.
+
+    Parameters:
+    T (float): Temperature in degrees Celsius.
+
+    Returns:
+    float: Specific enthalpy in kJ/kg.
+    """
+    if -273.15 > t or 0.01 < t:
+        raise ValueError("Temperature range: -273.15 °C < T < 0.01 °C")
+
+    par = [
+        -3.33277728e02,
+        2.11430597e00,
+        4.24278787e-03,
+        6.07648070e-06,
+        1.55000954e-08,
+    ]
+    return (par[0] + par[1] * t + par[2] * t**2 + par[3] * t**3 + par[4] * t**4) * 1e3
