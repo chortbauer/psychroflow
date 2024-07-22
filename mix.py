@@ -37,7 +37,7 @@ hafs = []
 # pp(has)
 
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(20, 0.7, p)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(-20, 0.7, p)
 haf1 = psf.HumidAirFlow(150_000 / 3600, has1)
 hafs.append(haf1)
 pp(haf1)

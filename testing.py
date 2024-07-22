@@ -8,8 +8,10 @@ Created on 2024-01-22 07:30:30
 # pylint: disable=unused-import
 
 import pprint
+import numpy as np
 
 import psychroflow as psf
+import waterstate as ws
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
@@ -18,17 +20,17 @@ pp = PrettyPrinter.pprint
 # for t in t_range:
 #     print(t , psf.get_density_water(t))
 
-# hafs = []
+hafs = []
 
-has0 = psf.HumidAirState.from_t_dry_bulb_rel_hum(30, 0.99)
-has0_heated = has0.at_t_dry_bulb(60)
-haf_sec = psf.HumidAirFlow(0.2, has0_heated)
+has0 = psf.HumidAirState.from_t_dry_bulb_rel_hum(10, 0.001)
+# has0_heated = has0.at_t_dry_bulb(60)
+haf0 = psf.HumidAirFlow(0.2, has0)
 
-has4 = psf.HumidAirState.from_t_dry_bulb_rel_hum(40, 0.99)
-haf_pri = psf.HumidAirFlow(1, has4)
+has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(-40, 0.3)
+haf1 = psf.HumidAirFlow(1, has1)
 # pp(has4)
 
-mix = psf.mix_humid_air_flows([haf_pri, haf_sec])
+mix = psf.mix_humid_air_flows([haf0, haf1])
 print(mix.str_short())
 
 # pp(has1.at_t_dry_bulb(70))
@@ -115,3 +117,10 @@ print(mix.str_short())
 # pp(haf)
 
 # pp(haf1.add_water_flow(wf_s))
+# def h_ice (t):
+#     return (-333.4 + 2.07 * (t - 0.01)) * 1e3
+
+# for t in np.linspace(-270, 0.01,50):
+#     print(f"\n {t=}")
+#     print(h_ice(t))
+#     print(ws.get_enthalpy_water_ice(t))

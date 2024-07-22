@@ -65,10 +65,12 @@ def __(mo):
     inputs = mo.ui.batch(
         markdown,
         {
-            "haf_pri_q": mo.ui.slider(100, 50000, value=23000, show_value=True, step=100, debounce=True),
+            "haf_pri_q": mo.ui.slider(
+                100, 50000, value=23000, show_value=True, step=100, debounce=True
+            ),
             "has_pri_t_dry": mo.ui.slider(0, 100, value=35, show_value=True),
             "has_pri_rel_hum": mo.ui.slider(0, 100, value=85, show_value=True),
-            "has_0_t_dry": mo.ui.slider(-20, 40, value=35, show_value=True),
+            "has_0_t_dry": mo.ui.slider(-20, 60, value=35, show_value=True),
             "has_0_rel_hum": mo.ui.slider(0, 100, value=85, show_value=True),
             "percent_falschluft": mo.ui.slider(0, 200, value=20, show_value=True),
             "falschluft_t_dry": mo.ui.slider(-20, 100, value=60, show_value=True),
