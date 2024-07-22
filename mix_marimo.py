@@ -1,31 +1,7 @@
 import marimo
 
-__generated_with = "0.7.5"
+__generated_with = "0.7.9"
 app = marimo.App()
-
-
-@app.cell
-def __():
-    import pprint
-
-    import marimo as mo
-
-    import psychrostate as pss
-    import psychroflow as psf
-    from create_reports import create_report_mix_humid_air_flows
-
-
-    PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
-    pp = PrettyPrinter.pprint
-    return (
-        PrettyPrinter,
-        create_report_mix_humid_air_flows,
-        mo,
-        pp,
-        pprint,
-        psf,
-        pss,
-    )
 
 
 @app.cell
@@ -62,39 +38,55 @@ def __(mo):
         .batch(
             project_name=mo.ui.text(label="Projekt Name", value=""),
             project_number=mo.ui.text(label="Projekt Nummer", value=""),
-            filename=mo.ui.text(label="Dateiname", value="report_mix_air_flows"),
+            filename=mo.ui.text(label="Dateiname"),
             # author=mo.ui.text(label="Author"),
             # date=mo.ui.date(label="Datum"),
         )
         .form(
+            clear_on_submit = True,
             show_clear_button=True,
-            # on_change=,
         )
     )
     form
-    return form
-
+    return form,
 
 
 @app.cell
-def __(
-    create_report_mix_humid_air_flows,
-    form,
-    hafs,
-    mo,
-    set_state,
-):
+def __():
+    import pprint
 
-    if form.value:
+    import marimo as mo
+    from pathvalidate import sanitize_filepath
+
+    import psychrostate as pss
+    import psychroflow as psf
+    from create_reports import create_report_mix_humid_air_flows
+
+    PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
+    pp = PrettyPrinter.pprint
+    return (
+        PrettyPrinter,
+        create_report_mix_humid_air_flows,
+        mo,
+        pp,
+        pprint,
+        psf,
+        pss,
+        sanitize_filepath,
+    )
+
+
+@app.cell
+def __(create_report_mix_humid_air_flows, form, hafs, sanitize_filepath):
+    if form.value and form.value["filename"]:
         create_report_mix_humid_air_flows(
             humid_air_flows=hafs,
             projekt_name=form.value["project_name"],
             projekt_number=form.value["project_number"],
             author="orc",
-            file_name=f"output/{form.value["filename"]}",
+            file_name=sanitize_filepath(f"output/{form.value["filename"]}"),
             save_html=False,
         )
-
     return
 
 
@@ -163,7 +155,7 @@ def __(mo, n_hafs, n_hafs_default):
 
     sliders_rel_hum = mo.ui.array(
         [
-            mo.ui.slider(0, 100, value=20, show_value=True)
+            mo.ui.slider(0, 100, value=40, show_value=True)
             for _ in range(n_hafs_n)
         ]
     )
