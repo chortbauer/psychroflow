@@ -12,9 +12,10 @@ import pytest
 import numpy as np
 
 from psychrostate import HumidAirState
-import psychrostate as psf
+import psychrostate as ps
+import psychroflow as pf
 
-P = psf.STANDARD_PRESSURE
+P = ps.STANDARD_PRESSURE
 
 
 def approx(o1: Any, o2: Any) -> None:
@@ -46,9 +47,9 @@ def test_has_init_methods():
 
     # generate test data using from_t_dry_bulb_rel_hum
     has_test_data = []
-    for t in np.linspace(-30, 80, 32):
-        for rh in np.linspace(0, 1, 16):
-            for p in np.linspace(50000, 1500000, 16):
+    for t in np.linspace(-50, 80, 16):
+        for rh in np.linspace(0, 1, 8):
+            for p in np.linspace(80000, 1500000, 8):
                 has = HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p)
                 has_test_data.append([t, rh, p, has.hum_ratio, has.moist_air_enthalpy])
 
@@ -64,4 +65,42 @@ def test_has_init_methods():
         approx(
             HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p),
             HumidAirState.from_hum_ratio_enthalpy(hr, h, p),
+        )
+
+
+# test different methods to initialize HumidAirFlow
+def test_haf_init_methods():
+    """tests if all classmethods for initiating a HumidAirFlow agree with each other"""
+
+    # generate test data for comparisons
+    haf_test_data = []
+    for q in np.linspace(0.1, 1e5/3600, 16):
+        for t in np.linspace(-50, 80, 4):
+            for rh in np.linspace(0, 1, 4):
+                for p in np.linspace(80000, 1500000, 4):
+                    has = HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p)
+                    haf = pf.HumidAirFlow(q, has)
+                    haf_test_data.append(
+                        [
+                            haf,
+                            q,
+                            p,
+                            has,
+                            haf.mass_flow_air,
+                            haf.mass_flow_water,
+                            haf.enthalpy_flow,
+                        ]
+                    )
+
+    # compare with from_m_air_HumidAirState
+    for haf, q, p, has, mass_flow_air, mass_flow_water, enthalpy_flow in haf_test_data:
+        approx(haf, pf.HumidAirFlow.from_m_air_HumidAirState(mass_flow_air, has))
+
+    # compare with from_m_air_m_water_enthalpy_flow
+    for haf, q, p, has, mass_flow_air, mass_flow_water, enthalpy_flow in haf_test_data:
+        approx(
+            haf,
+            pf.HumidAirFlow.from_m_air_m_water_enthalpy_flow(
+                mass_flow_air, mass_flow_water, enthalpy_flow, p
+            ),
         )

@@ -95,6 +95,9 @@ class HumidAirFlow:
         # sat_hum_ratio = ps.GetSatHumRatio(t_dry_bulb, pressure)
         sat_hum_ratio = get_sat_hum_ratio(t_dry_bulb, pressure)
 
+        if isclose(hum_ratio, sat_hum_ratio):
+            hum_ratio = sat_hum_ratio
+
         if hum_ratio <= sat_hum_ratio:
             # gas phase only
             has = HumidAirState.from_t_dry_bulb_hum_ratio(
@@ -182,10 +185,11 @@ class HumidAirFlow:
         if 1 < rel_hum_target:
             raise ValueError("Relative humidity target cannot be > 1")
 
-        if (not isclose(0, self.humid_air_state.hum_ratio)) and isclose(
-            0, rel_hum_target
-        ):
-            raise ValueError("Relative humidity target cannot be 0")
+        if isclose(0, rel_hum_target):
+            if isclose(0, self.humid_air_state.hum_ratio):
+                return 0
+            else:
+                raise ValueError("Relative humidity target cannot be 0")
 
         def fun(h_f):
             rel_hum = self.add_enthalpy(h_f).humid_air_state.rel_hum

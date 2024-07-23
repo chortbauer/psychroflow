@@ -76,16 +76,20 @@ class HumidAirState:
         """initiate HumidAirState with t_dry_bulb and hum_ratio"""
 
         if 0 > hum_ratio:
-            raise ValueError("Humidity ratio cannot be negative")
+            if isclose(hum_ratio, 0):
+                hum_ratio = 0
+            else:
+                raise ValueError("Humidity ratio cannot be negative")
 
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
         rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
-        
+
         if 1 < rel_hum:
-            raise ValueError(
-                "relative Humidity > 1; Condensation!"
-            )
-        
+            if isclose(rel_hum, 1):
+                rel_hum = 1
+            else:
+                raise ValueError("relative Humidity > 1; Condensation!")
+
         t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
@@ -233,7 +237,11 @@ def get_sat_vap_pressure_water_ice(
 def get_vap_pres_from_rel_hum(t_dry_bulb: float, rel_hum: float) -> float:
     """Return partial pressure of water vapor as a function of relative humidity and temperature."""
 
-    if rel_hum < 0 or rel_hum > 1:
+    if isclose(0, rel_hum):
+        rel_hum = 0
+    elif isclose(1, rel_hum):
+        rel_hum = 1
+    elif 0 > rel_hum or 1 < rel_hum:
         raise ValueError("Relative humidity is outside range [0, 1]")
 
     return rel_hum * get_sat_vap_pressure(t_dry_bulb)
@@ -434,7 +442,7 @@ def get_t_dry_bulb_from_sat_vap_pressure(sat_vap_pressure: float) -> float:
 
 
 def get_t_wet_bulb(t_dry_bulb: float, hum_ratio: float, pressure: float) -> float:
-    t_dry_bulb_lim_up = get_t_dry_bulb_from_sat_vap_pressure(pressure) - 1e-3
+    t_dry_bulb_lim_up = min(150, get_t_dry_bulb_from_sat_vap_pressure(pressure) - 1e-3)
 
     def fun(t):
         return (
