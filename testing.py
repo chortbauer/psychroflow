@@ -11,6 +11,7 @@ import pprint
 import numpy as np
 
 import psychroflow as psf
+import psychrostate as ps
 import waterstate as ws
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
@@ -22,16 +23,24 @@ pp = PrettyPrinter.pprint
 
 hafs = []
 
-has0 = psf.HumidAirState.from_t_dry_bulb_rel_hum(10, 0.001)
-# has0_heated = has0.at_t_dry_bulb(60)
-haf0 = psf.HumidAirFlow(0.2, has0)
+# has0 = psf.HumidAirState.from_t_dry_bulb_rel_hum(100, 0.999)
+# sat_vap = ps.get_vap_press_from_hum_ratio(0.00000001, 1e5)
+# rel_hum = get_rel_hum_from_vap_pressure(70, sat_vap)
 
-has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(-40, 0.3)
-haf1 = psf.HumidAirFlow(1, has1)
+has0 = psf.HumidAirState.from_t_dry_bulb_hum_ratio(75, 0.4)
+# has0_heated = has0.at_t_dry_bulb(60)
+# haf0 = psf.HumidAirFlow(0.2, has0)
+
+t_wet_bulb = ps.get_t_wet_bulb(has0.t_dry_bulb, has0.hum_ratio, has0.pressure)
+
+print(f"{has0}")
+
+# has1 = psf.HumidAirState.from_t_dry_bulb_rel_hum(-40, 0.3)
+# haf1 = psf.HumidAirFlow(1, has1)
 # pp(has4)
 
-mix = psf.mix_humid_air_flows([haf0, haf1])
-print(mix.str_short())
+# mix = psf.mix_humid_air_flows([haf0, haf1])
+# print(mix.str_short())
 
 # pp(has1.at_t_dry_bulb(70))
 

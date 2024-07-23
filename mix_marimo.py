@@ -78,7 +78,7 @@ def __():
 
 @app.cell
 def __(create_report_mix_humid_air_flows, form, hafs, sanitize_filepath):
-    if form.value and form.value["filename"]:
+    if form.value and form.value["filename"] and 1 <= len(hafs):
         create_report_mix_humid_air_flows(
             humid_air_flows=hafs,
             projekt_name=form.value["project_name"],
@@ -94,21 +94,21 @@ def __(create_report_mix_humid_air_flows, form, hafs, sanitize_filepath):
 def __(hafs, mo, psf):
     # create output text
 
-    md_hafs = mo.md("\n\n".join([haf.str_short() for haf in hafs]))
+    md_hafs = mo.md("\n\n".join([haf.str_short() + haf.t_dew for haf in hafs]))
 
     if 1 <= len(hafs):
         haf_mix = psf.mix_humid_air_flows(hafs)
 
     md_mix = (
-        mo.md("## Mix \n\n **" + haf_mix.str_short() + "**")
+        mo.md("## Output Stream \n\n **" + haf_mix.str_short() + "**")
         if 1 <= len(hafs)
         else mo.md("")
     )
 
     md_output = (
-        mo.vstack([mo.md("## Inputs"), md_hafs, md_mix])
+        mo.vstack([mo.md("## Input Streams"), md_hafs, md_mix])
         if 1 <= len(hafs)
-        else mo.md("")
+        else mo.md("### No active input streams!")
     )
     return haf_mix, md_hafs, md_mix, md_output
 
@@ -116,7 +116,6 @@ def __(hafs, mo, psf):
 @app.cell
 def __(mo):
     # create ui n_hafs
-
     n_hafs_default = 5
     n_hafs = mo.ui.number(start=1, stop=100, step=1, value=n_hafs_default, label="Anzahl Luftströme").form()
 
@@ -127,20 +126,23 @@ def __(mo):
 @app.cell
 def __(mo, n_hafs, n_hafs_default):
     # create ui
-
     n_hafs_n = n_hafs.value if n_hafs.value else n_hafs_default
 
     enabled_ticks = mo.ui.array(
-        [
-            mo.ui.checkbox(value=False) for _ in range(n_hafs_n)
-        ]
+        [mo.ui.checkbox(value=False) for _ in range(n_hafs_n)]
     )
     enabled_ticks_stack = mo.vstack(enabled_ticks)
 
     sliders_volume_flow = mo.ui.array(
         [
-            mo.ui.slider(0, 200_000, value=10_000, show_value=True)
-            for _ in range(n_hafs_n)
+            mo.ui.slider(
+                0,
+                200_000,
+                value=10000,
+                step=100,
+                show_value=True,
+            )
+            for i in range(n_hafs_n)
         ],
     )
     sliders_volume_flow_stack = mo.vstack(sliders_volume_flow)
@@ -154,18 +156,33 @@ def __(mo, n_hafs, n_hafs_default):
     sliders_t_dry_stack = mo.vstack(sliders_t_dry)
 
     sliders_rel_hum = mo.ui.array(
-        [
-            mo.ui.slider(0, 100, value=40, show_value=True)
-            for _ in range(n_hafs_n)
-        ]
+        [mo.ui.slider(0, 100, value=40, show_value=True) for _ in range(n_hafs_n)]
     )
     sliders_rel_hum_stack = mo.vstack(sliders_rel_hum)
 
-    sliders_stack = mo.hstack([enabled_ticks_stack,sliders_volume_flow_stack, sliders_t_dry_stack,sliders_rel_hum_stack],align="center",justify="space-around")
+    sliders_stack = mo.hstack(
+        [
+            enabled_ticks_stack,
+            sliders_volume_flow_stack,
+            sliders_t_dry_stack,
+            sliders_rel_hum_stack,
+        ],
+        align="center",
+        justify="space-around",
+    )
 
-    headings_stack = mo.hstack(["","Volumenstrom", "Temperatur", "rel Feuchte"],align="center",justify="space-around")
+    headings_stack = mo.hstack(
+        ["", "Volumenstrom [m³/h]", "Temperatur [°C]", "rel Feuchte [%]"],
+        align="center",
+        justify="space-around",
+    )
 
-    ui_hafs = mo.vstack([headings_stack,sliders_stack,])
+    ui_hafs = mo.vstack(
+        [
+            headings_stack,
+            sliders_stack,
+        ]
+    )
     return (
         enabled_ticks,
         enabled_ticks_stack,
@@ -207,6 +224,11 @@ def __(
                 )
             )
     return hafs, i
+
+
+@app.cell
+def __():
+    return
 
 
 if __name__ == "__main__":

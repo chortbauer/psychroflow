@@ -9,7 +9,11 @@ from math import exp, isclose
 from dataclasses import dataclass
 from scipy import optimize
 
-from waterstate import get_enthalpy_water_liquid, get_enthalpy_water_ice
+from waterstate import (
+    get_enthalpy_water,
+    get_enthalpy_water_liquid,
+    get_enthalpy_water_ice,
+)
 
 
 STANDARD_PRESSURE = 101_325  # Pa
@@ -27,6 +31,7 @@ class HumidAirState:
     pressure: float
     hum_ratio: float
     t_dry_bulb: float
+    t_wet_bulb: float
     t_dew_point: float
     rel_hum: float
     vap_pres: float
@@ -44,6 +49,7 @@ class HumidAirState:
 
         hum_ratio = get_hum_ratio_from_rel_hum(t_dry_bulb, rel_hum, pressure)
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
+        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
         moist_air_volume = get_moist_air_volume(
@@ -55,6 +61,7 @@ class HumidAirState:
             pressure,
             hum_ratio,
             t_dry_bulb,
+            t_wet_bulb,
             t_dew_point,
             rel_hum,
             vap_pres,
@@ -73,6 +80,13 @@ class HumidAirState:
 
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
         rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
+        
+        if 1 < rel_hum:
+            raise ValueError(
+                "relative Humidity > 1; Condensation!"
+            )
+        
+        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
         moist_air_volume = get_moist_air_volume(
@@ -84,6 +98,7 @@ class HumidAirState:
             pressure,
             hum_ratio,
             t_dry_bulb,
+            t_wet_bulb,
             t_dew_point,
             rel_hum,
             vap_pres,
@@ -104,6 +119,7 @@ class HumidAirState:
         t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
             hum_ratio, tot_enthalpy, pressure
         )
+        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
         moist_air_volume = get_moist_air_volume(t_dry_bulb, hum_ratio, pressure)
@@ -111,6 +127,7 @@ class HumidAirState:
             pressure,
             hum_ratio,
             t_dry_bulb,
+            t_wet_bulb,
             t_dew_point,
             rel_hum,
             vap_pres,
@@ -129,9 +146,9 @@ def get_sat_vap_pressure(t_dry_bulb: float) -> float:
     """
     calculate the saturation vapor pressure of water / ice
     """
-    if -223.15 > t_dry_bulb or 373.95 < t_dry_bulb:
+    if -223.15 > t_dry_bulb or 373.9 < t_dry_bulb:
         raise ValueError(
-            f"Invalid temperature range -223.15°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
+            f"Invalid temperature range -223.15°C<=t<=373.9°C; {t_dry_bulb:=.2f}"
         )
 
     if 0.01 <= t_dry_bulb:
@@ -149,9 +166,9 @@ def get_sat_vap_pressure_liquid_water(t_dry_bulb: float) -> float:
     Journal of Applied Meteorology and Climatology, Bd. 57, Nr. 6, S. 1265-1272, Juni 2018,
     doi: 10.1175/JAMC-D-17-0334.1.
     """
-    if 0.01 > t_dry_bulb or 373.95 < t_dry_bulb:
+    if 0.01 > t_dry_bulb or 373.9 < t_dry_bulb:
         raise ValueError(
-            f"Invalid temperature range 0.01°C<=t<=373.95°C; {t_dry_bulb:=.2f}"
+            f"Invalid temperature range 0.01°C<=t<=373.9°C; {t_dry_bulb:=.2f}"
         )
 
     p_c = 22.064e6  # Pa
@@ -396,9 +413,40 @@ def get_tot_enthalpy_air_water_mix(
         return tot_enthalpy
 
     # saturated air over ice
-    # enthalpy_ice = (-333.4 + 2.07 * (t_dry_bulb - 0.01)) * 1e3
     enthalpy_ice = get_enthalpy_water_ice(t_dry_bulb)
     tot_enthalpy = (enthalpy_gas + enthalpy_ice * (hum_ratio - sat_hum_ratio)) / (
         1 + hum_ratio
     )
     return tot_enthalpy
+
+
+def get_t_dry_bulb_from_sat_vap_pressure(sat_vap_pressure: float) -> float:
+    """get the dry bulb temperature from a given saturation vapour pressure"""
+    sol = optimize.root_scalar(
+        lambda t: get_sat_vap_pressure(t) - sat_vap_pressure,
+        method="brentq",
+        bracket=[-223.15, 373.9],
+    )
+
+    if sol.converged:
+        return sol.root
+    raise ArithmeticError("Root not found: " + sol.flag)
+
+
+def get_t_wet_bulb(t_dry_bulb: float, hum_ratio: float, pressure: float) -> float:
+    t_dry_bulb_lim_up = get_t_dry_bulb_from_sat_vap_pressure(pressure) - 1e-3
+
+    def fun(t):
+        return (
+            get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+            + (get_sat_hum_ratio(t, pressure) - hum_ratio) * get_enthalpy_water(t)
+            - get_sat_air_enthalpy(t, pressure)
+        )
+
+    sol = optimize.root_scalar(
+        fun, method="brentq", bracket=[-223.15, t_dry_bulb_lim_up]
+    )
+
+    if sol.converged:
+        return sol.root
+    raise ArithmeticError("Root not found: " + sol.flag)

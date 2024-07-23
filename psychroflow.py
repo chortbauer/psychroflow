@@ -418,11 +418,7 @@ def mix_two_humid_air_flows(
 
 
 def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
-    """mix two humid air flows, raises error if there is condensation"""
-
-    # haf_out = hafs_in[0]
-    # for haf in hafs_in[1:]:
-    #     haf_out = mix_two_humid_air_flows(haf_out, haf)
+    """mix a list of humid air flows, raises error if there is condensation"""
 
     pressures = [haf.humid_air_state.pressure for haf in hafs_in]
     if not all(
@@ -438,11 +434,39 @@ def mix_humid_air_flows(hafs_in: list[HumidAirFlow]) -> HumidAirFlow:
     )
 
     if awf.dry:
-        # and not allow_condensation:
         return awf.humid_air_flow
-    # elif allow_condensation:
-    #     return awf
     raise ValueError("Condensation")
+
+
+def mix_air_water_flows(flows_in: list[HumidAirFlow | AirWaterFlow]) -> AirWaterFlow:
+    """mix a list of humid air flows and air water flows in a single air water flow"""
+
+    pressures = [
+        haf.humid_air_state.pressure
+        for haf in flows_in
+        if isinstance(haf, HumidAirFlow)
+    ]
+    pressures = pressures + (
+        [
+            awf.humid_air_flow.humid_air_state.pressure
+            for awf in flows_in
+            if isinstance(awf, AirWaterFlow)
+        ]
+    )
+
+    if not all(
+        isclose(pressures[i], pressures[i + 1]) for i in range(len(pressures) - 1)
+    ):
+        raise ValueError("Pressure of mixing air flows must be equal")
+
+    awf = AirWaterFlow.from_m_air_m_water_enthalpy_flow(
+        m_air=sum([flow.mass_flow_air for flow in flows_in]),
+        m_water=sum([flow.mass_flow_water for flow in flows_in]),
+        enthalpy_flow=sum([flow.enthalpy_flow for flow in flows_in]),
+        pressure=pressures[0],
+    )
+
+    return awf
 
 
 def add_water_to_air_stream(haf: HumidAirFlow, wf: WaterFlow) -> HumidAirFlow:
