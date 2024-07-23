@@ -28,7 +28,7 @@ def get_density_water(t: float) -> float:
     """density of water/ice at Temperatur t in °C"""
     if 0.01 <= t and 100 >= t:
         return get_density_water_liquid(t)
-    elif 0.01 < t:
+    elif 0.01 > t:
         return get_density_water_ice(t)
     raise ValueError("t_dry_bulb > 100°C; Steam not implemented")
 
@@ -134,7 +134,7 @@ def get_enthalpy_water(t: float) -> float:
     """enthalpy of water/ice at Temperatur t in °C"""
     if 0.01 <= t and 100 >= t:
         return get_enthalpy_water_liquid(t)
-    elif 0.01 < t:
+    elif 0.01 > t:
         return get_enthalpy_water_ice(t)
     raise ValueError("t_dry_bulb > 100°C; Steam not implemented")
 
