@@ -17,7 +17,7 @@ def create_report_mix_humid_air_flows(
     humid_air_flows,
     projekt_name="",
     projekt_number="",
-    author="orc",
+    author="",
     file_name=r"output/report_mix_air_streams",
     save_html=False,
     save_pdf=True,
@@ -46,7 +46,7 @@ def create_report_mix_humid_air_flows(
             ".", ","
         ),
         t=f"{comb_air_stream.humid_air_state.t_dry_bulb:.1f}".replace(".", ","),
-        x=f"{comb_air_stream.humid_air_state.hum_ratio:.3f}".replace(".", ","),
+        x=f"{comb_air_stream.humid_air_state.hum_ratio:.4f}".replace(".", ","),
         rh=f"{comb_air_stream.humid_air_state.rel_hum*100:.1f}".replace(".", ","),
         ttp=f"{comb_air_stream.humid_air_state.t_dew_point:.1f}".replace(".", ","),
     )

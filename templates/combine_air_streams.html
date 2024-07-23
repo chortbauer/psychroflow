@@ -91,6 +91,12 @@
           <td>Datum:</td>
           <td>{{date}}</td>
         </tr>
+        {% if author == "" %} {% else %}
+        <tr>
+          <td>Author:</td>
+          <td>{{author}}</td>
+        </tr>
+        {% endif %}
       </table>
     </div>
     <p>Druck: {{druck}} mbar</p>
@@ -131,6 +137,5 @@
       </tr>
     </table>
     <p>Abstand Temperatur zu Taupunkt in Mischung: {{delta_ttp_t}} °C</p>
-    <p style="margin-top: 2em">erstellt von {{author}}</p>
   </body>
 </html>

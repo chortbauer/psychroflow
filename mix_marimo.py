@@ -94,7 +94,7 @@ def __(create_report_mix_humid_air_flows, form, hafs, sanitize_filepath):
 def __(hafs, mo, psf):
     # create output text
 
-    md_hafs = mo.md("\n\n".join([haf.str_short() + haf.t_dew for haf in hafs]))
+    md_hafs = mo.md("\n\n".join([haf.str_short() for haf in hafs]))
 
     if 1 <= len(hafs):
         haf_mix = psf.mix_humid_air_flows(hafs)

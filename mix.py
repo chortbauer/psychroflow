@@ -21,7 +21,7 @@ pp = PrettyPrinter.pprint
 ########################################################################
 
 
-p = pss.get_pressure_from_height(210)
+p = pss.get_pressure_from_height(250)
 
 hafs = []
 
