@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on 2024-01-02 07:09:48
-@author: orc
+psychroflow.py
+
+This module provides classes and functions for calculating flows of humid air and water. 
 
 Unit conventions:
 SI units are used for all physical values except temperatur for which °C is used.
+
+Created on 2024-01-02 07:09:48
+@author: orc
 """
 
 # from logging import warning

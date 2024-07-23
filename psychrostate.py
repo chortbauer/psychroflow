@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+psychrostate.py
+
+This module provides classes and functions for calculating and analyzing the psychrometric state of humid air. 
+
+Unit conventions:
+SI units are used for all physical values except temperatur for which °C is used.
+
 Created on 2024-01-23 12:38:04
 @author: orc
 """
@@ -20,7 +27,15 @@ STANDARD_PRESSURE = 101_325  # Pa
 
 
 def get_pressure_from_height(height_above_sea_level: float) -> float:
-    """return mean atmospheric pressure at height above mean sea level"""
+    """
+    Calculate the mean atmospheric pressure at height above mean sea level.
+
+    Args:
+        height_above_sea_level (float): in m
+
+    Returns:
+        float: pressure in Pa
+    """
     return STANDARD_PRESSURE * exp(-height_above_sea_level / 8435)
 
 

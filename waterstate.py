@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 """
+waterstate.py
+
+This module provides classes and functions for calculating and analyzing the state of liquid and solid water. 
+
+The influence of pressure is currently ignored. All values are calculated at standard pressure (101_325 Pa).
+
+Unit conventions:
+SI units are used for all physical values except temperatur for which °C is used.
+
 Created on 2024-01-23 14:59:00
 @author: orc
 """
