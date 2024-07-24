@@ -457,7 +457,7 @@ def get_t_dry_bulb_from_sat_vap_pressure(sat_vap_pressure: float) -> float:
 
 
 def get_t_wet_bulb(t_dry_bulb: float, hum_ratio: float, pressure: float) -> float:
-    t_dry_bulb_lim_up = min(150, get_t_dry_bulb_from_sat_vap_pressure(pressure) - 1e-3)
+    t_dry_bulb_lim_up = min(150, get_t_dry_bulb_from_sat_vap_pressure(pressure))
 
     def fun(t):
         return (
