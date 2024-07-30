@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.7.9"
+__generated_with = "0.7.12"
 app = marimo.App()
 
 
@@ -100,15 +100,21 @@ def __(hafs, mo, psf):
         haf_mix = psf.mix_humid_air_flows(hafs)
 
     md_mix = (
-        mo.md("## Output Stream \n\n **" + haf_mix.str_short() + "**")
+        mo.md("## Mischungs Luftstrom \n\n **" + haf_mix.str_short() + "**")
         if 1 <= len(hafs)
         else mo.md("")
     )
 
     md_output = (
-        mo.vstack([mo.md("## Input Streams"), md_hafs, md_mix])
+        mo.vstack([mo.md("## Eingangs Luftströme"), md_hafs, md_mix])
         if 1 <= len(hafs)
-        else mo.md("### No active input streams!")
+        else mo.md(
+            """
+            ### Keine Eingänge aktiv
+            
+            Select Checkbox!
+            """
+        )
     )
     return haf_mix, md_hafs, md_mix, md_output
 
@@ -131,82 +137,73 @@ def __(mo, n_hafs, n_hafs_default):
     enabled_ticks = mo.ui.array(
         [mo.ui.checkbox(value=False) for _ in range(n_hafs_n)]
     )
-    enabled_ticks_stack = mo.vstack(enabled_ticks)
 
-    sliders_volume_flow = mo.ui.array(
+    inputs_volume_flow = mo.ui.array(
         [
-            mo.ui.slider(
+            mo.ui.number(
                 0,
                 200_000,
                 value=10000,
-                step=100,
-                show_value=True,
+                # step=100,
             )
             for i in range(n_hafs_n)
         ],
     )
-    sliders_volume_flow_stack = mo.vstack(sliders_volume_flow)
 
-    sliders_t_dry = mo.ui.array(
-        [
-            mo.ui.slider(-40, 100, value=20, show_value=True)
-            for _ in range(n_hafs_n)
-        ],
-    )
-    sliders_t_dry_stack = mo.vstack(sliders_t_dry)
-
-    sliders_rel_hum = mo.ui.array(
-        [mo.ui.slider(0, 100, value=40, show_value=True) for _ in range(n_hafs_n)]
-    )
-    sliders_rel_hum_stack = mo.vstack(sliders_rel_hum)
-
-    sliders_stack = mo.hstack(
-        [
-            enabled_ticks_stack,
-            sliders_volume_flow_stack,
-            sliders_t_dry_stack,
-            sliders_rel_hum_stack,
-        ],
-        align="center",
-        justify="space-around",
+    inputs_t_dry = mo.ui.array(
+        [mo.ui.number(-40, 100, value=20) for _ in range(n_hafs_n)],
     )
 
+    inputs_rel_hum = mo.ui.array(
+        [mo.ui.number(0, 100, value=40) for _ in range(n_hafs_n)]
+    )
+
+    headings = ["", "Volumenstrom [m³/h]", "Temperatur [°C]", "rel Feuchte [%]"]
+    element_width = 10
+    widths = [1] + [element_width] * 3
     headings_stack = mo.hstack(
-        ["", "Volumenstrom [m³/h]", "Temperatur [°C]", "rel Feuchte [%]"],
+        headings,
+        widths=widths,
         align="center",
-        justify="space-around",
     )
 
-    ui_hafs = mo.vstack(
+    ui_sliders = mo.vstack(
         [
-            headings_stack,
-            sliders_stack,
+            mo.hstack(
+                i,
+                widths=widths,
+                align="center",
+            )
+            for i in zip(
+                enabled_ticks, inputs_volume_flow, inputs_t_dry, inputs_rel_hum
+            )
         ]
     )
+
+    ui_hafs = mo.vstack([headings_stack, ui_sliders])
     return (
+        element_width,
         enabled_ticks,
-        enabled_ticks_stack,
+        headings,
         headings_stack,
+        inputs_rel_hum,
+        inputs_t_dry,
+        inputs_volume_flow,
         n_hafs_n,
-        sliders_rel_hum,
-        sliders_rel_hum_stack,
-        sliders_stack,
-        sliders_t_dry,
-        sliders_t_dry_stack,
-        sliders_volume_flow,
-        sliders_volume_flow_stack,
         ui_hafs,
+        ui_sliders,
+        widths,
     )
 
 
 @app.cell
 def __(
     enabled_ticks,
+    inputs_rel_hum,
+    inputs_t_dry,
+    inputs_volume_flow,
     n_hafs_n,
     psf,
-    sliders_rel_hum,
-    sliders_t_dry,
-    sliders_volume_flow,
 ):
     # mix air flows
 
@@ -216,14 +213,21 @@ def __(
         if enabled_ticks.value[i]:
             hafs.append(
                 psf.HumidAirFlow(
-                    sliders_volume_flow.value[i]/3600,
+                    inputs_volume_flow.value[i]/3600,
                     psf.HumidAirState.from_t_dry_bulb_rel_hum(
-                        t_dry_bulb=sliders_t_dry.value[i],
-                        rel_hum=sliders_rel_hum.value[i] / 100,
+                        t_dry_bulb=inputs_t_dry.value[i],
+                        rel_hum=inputs_rel_hum.value[i] / 100,
                     ),
                 )
             )
     return hafs, i
+
+
+@app.cell
+def __():
+    s = "asdf"
+    s.center(20)
+    return s,
 
 
 @app.cell

@@ -2,7 +2,7 @@
 """
 psychrostate.py
 
-This module provides classes and functions for calculating and analyzing the psychrometric state of humid air. 
+This module provides classes and functions for calculating and analyzing the psychrometric state of humid air.
 
 Unit conventions:
 SI units are used for all physical values except temperatur for which °C is used.
@@ -64,7 +64,9 @@ class HumidAirState:
 
         hum_ratio = get_hum_ratio_from_rel_hum(t_dry_bulb, rel_hum, pressure)
         vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
-        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
+        t_wet_bulb = get_t_wet_bulb_from_t_dry_bulb_hum_ratio(
+            t_dry_bulb, hum_ratio, pressure
+        )
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
         moist_air_volume = get_moist_air_volume(
@@ -105,7 +107,46 @@ class HumidAirState:
             else:
                 raise ValueError("relative Humidity > 1; Condensation!")
 
-        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
+        t_wet_bulb = get_t_wet_bulb_from_t_dry_bulb_hum_ratio(
+            t_dry_bulb, hum_ratio, pressure
+        )
+        t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
+        moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+        moist_air_volume = get_moist_air_volume(
+            t_dry_bulb,
+            hum_ratio,
+            pressure,
+        )
+        return cls(
+            pressure,
+            hum_ratio,
+            t_dry_bulb,
+            t_wet_bulb,
+            t_dew_point,
+            rel_hum,
+            vap_pres,
+            moist_air_enthalpy,
+            moist_air_volume,
+        )
+
+    @classmethod
+    def from_t_dry_bulb_t_wet_bulb(
+        cls, t_dry_bulb: float, t_wet_bulb: float, pressure: float = STANDARD_PRESSURE
+    ) -> Self:
+        """initiate HumidAirState with t_dry_bulb and t_wet_bulb"""
+
+        if t_wet_bulb > t_dry_bulb:
+            raise ValueError(
+                "Wet Bulb Temperature cannot be greater than Dry Bulb Temperature"
+            )
+
+        hum_ratio = get_hum_ratio_from_t_dry_bulb_t_wet_bulb(
+            t_dry_bulb, t_wet_bulb, pressure
+        )
+
+        vap_pres = get_vap_press_from_hum_ratio(hum_ratio, pressure)
+        rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
+
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         moist_air_enthalpy = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
         moist_air_volume = get_moist_air_volume(
@@ -138,7 +179,9 @@ class HumidAirState:
         t_dry_bulb = get_t_dry_bulb_from_tot_enthalpy_air_water_mix(
             hum_ratio, tot_enthalpy, pressure
         )
-        t_wet_bulb = get_t_wet_bulb(t_dry_bulb, hum_ratio, pressure)
+        t_wet_bulb = get_t_wet_bulb_from_t_dry_bulb_hum_ratio(
+            t_dry_bulb, hum_ratio, pressure
+        )
         t_dew_point = get_t_dew_point_from_vap_pressure(vap_pres)
         rel_hum = get_rel_hum_from_vap_pressure(t_dry_bulb, vap_pres)
         moist_air_volume = get_moist_air_volume(t_dry_bulb, hum_ratio, pressure)
@@ -319,6 +362,9 @@ def get_hum_ratio_from_rel_hum(
     if rel_hum < 0 or rel_hum > 1:
         raise ValueError("Relative humidity is outside range [0, 1]")
 
+    if isclose(rel_hum, 0):
+        return 0
+
     vap_pres = get_vap_pres_from_rel_hum(t_dry_bulb, rel_hum)
 
     return get_hum_ratio_from_vap_press(vap_pres, pressure)
@@ -456,18 +502,70 @@ def get_t_dry_bulb_from_sat_vap_pressure(sat_vap_pressure: float) -> float:
     raise ArithmeticError("Root not found: " + sol.flag)
 
 
-def get_t_wet_bulb(t_dry_bulb: float, hum_ratio: float, pressure: float) -> float:
-    t_dry_bulb_lim_up = min(150, get_t_dry_bulb_from_sat_vap_pressure(pressure))
+# TODO fails tests
+def get_t_wet_bulb_from_t_dry_bulb_hum_ratio(
+    t_dry_bulb: float, hum_ratio: float, pressure: float = STANDARD_PRESSURE
+) -> float:
+    if isclose(hum_ratio, 0):
+        hum_ratio = 0
 
-    def fun(t):
+    if isclose(hum_ratio, get_sat_hum_ratio(t_dry_bulb, pressure)):
+        return t_dry_bulb
+
+    elif 0 > hum_ratio:
+        raise ValueError("hum_ratio cannot be negative")
+
+    t_dry_bulb_lim_up = min(150, get_t_dry_bulb_from_sat_vap_pressure(pressure) - 1e-8)
+
+    def fun(t_wet_bulb):
         return (
             get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
-            + (get_sat_hum_ratio(t, pressure) - hum_ratio) * get_enthalpy_water(t)
-            - get_sat_air_enthalpy(t, pressure)
+            + (get_sat_hum_ratio(t_wet_bulb, pressure) - hum_ratio)
+            * get_enthalpy_water(t_wet_bulb)
+            - get_sat_air_enthalpy(t_wet_bulb, pressure)
         )
 
     sol = optimize.root_scalar(
         fun, method="brentq", bracket=[-223.15, t_dry_bulb_lim_up]
+    )
+
+    if sol.converged:
+        return sol.root
+    raise ArithmeticError("Root not found: " + sol.flag)
+
+
+# TODO fails tests
+def get_hum_ratio_from_t_dry_bulb_t_wet_bulb(
+    t_dry_bulb: float, t_wet_bulb: float, pressure: float
+) -> float:
+    if t_dry_bulb < t_wet_bulb:
+        raise ValueError("t_dry_bulb < t_wet_bulb")
+
+    if isclose(t_dry_bulb, t_wet_bulb, rel_tol=1e-3):
+        return 0
+
+    def fun(hum_ratio):
+        h = get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+        hum_ratio_s = get_sat_hum_ratio(t_wet_bulb, pressure)
+        hum_ratio = hum_ratio
+        h_water = get_enthalpy_water(t_wet_bulb)
+        h_s = get_sat_air_enthalpy(t_wet_bulb, pressure)
+
+        print(f"{h=}")
+        print(f"{hum_ratio_s=}")
+        print(f"{hum_ratio=}")
+        print(f"{h_water=}")
+        print(f"{h_s=}")
+
+        return (
+            get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+            + (get_sat_hum_ratio(t_wet_bulb, pressure) - hum_ratio)
+            * get_enthalpy_water(t_wet_bulb)
+            - get_sat_air_enthalpy(t_wet_bulb, pressure)
+        )
+
+    sol = optimize.root_scalar(
+        fun, method="brentq", bracket=[0, get_sat_hum_ratio(t_dry_bulb, pressure)]
     )
 
     if sol.converged:

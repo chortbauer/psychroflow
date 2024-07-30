@@ -39,17 +39,14 @@ def __():
 
 
 @app.cell
-def __(has, ps):
-    hum_ratio=has.hum_ratio
-    t_dry_bulb=has.t_dry_bulb
-    pressure=has.pressure
-    def fun_(t):
+def __(hum_ratio, pressure, ps, t_dry_bulb):
+    def fun_t(t):
         return (
             ps.get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
             + (ps.get_sat_hum_ratio(t, pressure) - hum_ratio) * ps.get_enthalpy_water(t)
             - ps.get_sat_air_enthalpy(t, pressure)
         )
-    return fun_, hum_ratio, pressure, t_dry_bulb
+    return fun_t,
 
 
 @app.cell
@@ -71,15 +68,6 @@ def __(optimize, ps):
 
 
 @app.cell
-def __(mo):
-    sl_t = mo.ui.slider(-100,100, value=20,show_value=True, label="T_dry_bulb [°C]", full_width=True)
-    sl_rel_hum = mo.ui.slider(0,100, value=50, show_value=True, label="rel Hum [%]", full_width=True)
-
-    mo.vstack([sl_t, sl_rel_hum])
-    return sl_rel_hum, sl_t
-
-
-@app.cell
 def __(ps, sl_rel_hum, sl_t):
     has = ps.HumidAirState.from_t_dry_bulb_rel_hum(sl_t.value,sl_rel_hum.value/100)
     has
@@ -87,21 +75,36 @@ def __(ps, sl_rel_hum, sl_t):
 
 
 @app.cell
-def __(get_t_wet_bulb, has):
-    get_t_wet_bulb(has.t_dry_bulb, has.hum_ratio, has.pressure)
-    return
+def __(mo):
+    sl_t = mo.ui.slider(-100,100, value=20,show_value=True, label="T_dry_bulb [°C]", full_width=True)
+    sl_rel_hum = mo.ui.slider(0,100, value=50, show_value=True, label="rel Hum [%]", full_width=True)
+    sl_pressure = mo.ui.slider(8e4,1.2e5, value=1e5, show_value=True, label="Pressure [Pa]", full_width=True)
+
+    mo.vstack([sl_t, sl_pressure])
+    return sl_pressure, sl_rel_hum, sl_t
 
 
 @app.cell
-def __(fun_, np, plt):
-    t_ = np.linspace(-1, 1, 500)
+def __(np, plt, ps, sl_pressure, sl_t):
+
+
+    t_dry_bulb = sl_t.value
+    pressure = sl_pressure.value
+
+    # t_ = np.linspace(t_dry_bulb-t_int, t_dry_bulb+t_int, 500)
+    # hum_ratio_ = np.linspace(0, hum_ratio_s, 500)
+    phi_ = np.linspace(0,1,500)
+
+    fun_t_wet_phi = lambda phi: ps.get_t_wet_bulb_from_t_dry_bulb_hum_ratio(t_dry_bulb, ps.get_hum_ratio_from_rel_hum(t_dry_bulb, phi,pressure), pressure)
 
     fig, ax = plt.subplots(1, figsize=(10,6))
 
     ax.grid()
 
-    ax.plot(t_, [fun_(t) for t in t_])
-    return ax, fig, t_
+    # ax.plot(hum_ratio_, [fun_(h) for h in hum_ratio_])
+    # ax.plot(t_, [fun_t(t) for t in t_])
+    ax.plot(phi_, [fun_t_wet_phi(phi) for phi in phi_])
+    return ax, fig, fun_t_wet_phi, phi_, pressure, t_dry_bulb
 
 
 @app.cell
@@ -112,6 +115,30 @@ def __():
 @app.cell
 def __(ps):
     ps.get_sat_vap_pressure(373.9)
+    return
+
+
+@app.cell
+def __(ps, test):
+    ps.isclose(0,test)
+    return
+
+
+@app.cell
+def __():
+    test = 0/1
+    return test,
+
+
+@app.cell
+def __(ps):
+    ps.HumidAirState.from_t_dry_bulb_rel_hum(-50, 1, 8e4)
+    return
+
+
+@app.cell
+def __(ps):
+    ps.HumidAirState.from_t_dry_bulb_rel_hum(-50,1)
     return
 
 

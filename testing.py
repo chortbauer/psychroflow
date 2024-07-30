@@ -40,10 +40,28 @@ hafs = []
 
 # print(f"{has0}")
 
+# t_dry_bulb, rh, pressure, hum_ratio, h, t_wet_bulb = [-50.0, 0.0, 891428.5714285715, 0.0, -50240.045999999995, -50.0077504573249]
 
-psf.HumidAirFlow.from_m_air_m_water_enthalpy_flow(
-    m_air=0.6790955478428202,
-    m_water=3.823321578469525e-06,
-    enthalpy_flow=-34108.586030716404,
-    pressure=435000.0,
-)
+# # t_wet = ps.get_t_wet_bulb_from_t_dry_bulb_hum_ratio(40,0.002,1.002e5)
+# # print(t_wet)
+
+# hum_ratio = 0
+# hum_ratio =  ps.get_sat_hum_ratio(t_dry_bulb, pressure)
+
+# h = ps.get_moist_air_enthalpy(t_dry_bulb, hum_ratio)
+# hum_ratio_s = ps.get_sat_hum_ratio(t_wet_bulb, pressure)
+# hum_ratio = hum_ratio
+# h_water  = ps.get_enthalpy_water(t_wet_bulb)
+# h_s = ps.get_sat_air_enthalpy(t_wet_bulb, pressure)
+
+# print(f"{h=}")
+# print(f"{hum_ratio_s=}")
+# print(f"{hum_ratio=}")
+# print(f"{h_water=}")
+# print(f"{h_s=}")
+
+
+# hum_ratio = ps.get_hum_ratio_from_t_dry_bulb_t_wet_bulb(t_dry_bulb,t_wet_bulb,pressure)
+# print(hum_ratio)
+
+has = ps.HumidAirState.from_t_dry_bulb_rel_hum(-50, 1, 8e4)

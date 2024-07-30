@@ -47,24 +47,70 @@ def test_has_init_methods():
 
     # generate test data using from_t_dry_bulb_rel_hum
     has_test_data = []
-    for t in np.linspace(-50, 80, 16):
-        for rh in np.linspace(0, 1, 8):
-            for p in np.linspace(80000, 1500000, 8):
-                has = HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p)
-                has_test_data.append([t, rh, p, has.hum_ratio, has.moist_air_enthalpy])
+    for t_dry_bulb in np.linspace(-50, 80, 32):
+        for rel_hum in np.linspace(0, 1, 16):
+            for pressure in np.linspace(80000, 1500000, 8):
+                has = HumidAirState.from_t_dry_bulb_rel_hum(
+                    t_dry_bulb, rel_hum, pressure
+                )
+                has_test_data.append(
+                    [
+                        t_dry_bulb,
+                        rel_hum,
+                        pressure,
+                        has.hum_ratio,
+                        has.moist_air_enthalpy,
+                        has.t_wet_bulb,
+                        has,
+                    ]
+                )
 
     # compare with from_t_dry_bulb_hum_ratio
-    for t, rh, p, hr, h in has_test_data:
+    for (
+        t_dry_bulb,
+        rel_hum,
+        pressure,
+        hum_ratio,
+        moist_air_enthalpy,
+        t_wet_bulb,
+        has,
+    ) in has_test_data:
         approx(
-            HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p),
-            HumidAirState.from_t_dry_bulb_hum_ratio(t, hr, p),
+            has,
+            HumidAirState.from_t_dry_bulb_hum_ratio(t_dry_bulb, hum_ratio, pressure),
         )
 
+    # # compare with from_t_dry_bulb_t_wet_bulb
+    # for (
+    #     t_dry_bulb,
+    #     rel_hum,
+    #     pressure,
+    #     hum_ratio,
+    #     moist_air_enthalpy,
+    #     t_wet_bulb,
+    #     has,
+    # ) in has_test_data:
+    #     print(t_dry_bulb, rel_hum, pressure, hum_ratio, moist_air_enthalpy, t_wet_bulb)
+    #     approx(
+    #         has,
+    #         HumidAirState.from_t_dry_bulb_t_wet_bulb(t_dry_bulb, t_wet_bulb, pressure),
+    #     )
+
     # compare with from_hum_ratio_enthalpy
-    for t, rh, p, hr, h in has_test_data:
+    for (
+        t_dry_bulb,
+        rel_hum,
+        pressure,
+        hum_ratio,
+        moist_air_enthalpy,
+        t_wet_bulb,
+        has,
+    ) in has_test_data:
         approx(
-            HumidAirState.from_t_dry_bulb_rel_hum(t, rh, p),
-            HumidAirState.from_hum_ratio_enthalpy(hr, h, p),
+            has,
+            HumidAirState.from_hum_ratio_enthalpy(
+                hum_ratio, moist_air_enthalpy, pressure
+            ),
         )
 
 
@@ -74,7 +120,7 @@ def test_haf_init_methods():
 
     # generate test data for comparisons
     haf_test_data = []
-    for q in np.linspace(0.1, 1e5/3600, 16):
+    for q in np.linspace(0.1, 1e5 / 3600, 16):
         for t in np.linspace(-50, 80, 4):
             for rh in np.linspace(0, 1, 4):
                 for p in np.linspace(80000, 1500000, 4):
