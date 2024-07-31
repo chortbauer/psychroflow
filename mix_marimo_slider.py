@@ -102,7 +102,7 @@ def __(hafs, locale, mo, psf):
     def haf_string_mo_md(haf):
         return mo.md(
             """
-            $V = {} \, m^3/h$ &emsp; $T = {} \,°C$ &emsp; $\phi = {} \, \%$ &emsp; $T_d = {} \, °C$
+            $V = {} \, m^3/h$ &emsp; $T = {} \,°C$ &emsp; $\phi = {} \, \%$ &emsp; $T_d = {} \, °C$  &emsp; $X = {} \, m_W/m_L$
             """.format(
                 locale.format_string(
                     "%.0f", haf.volume_flow * 3600, grouping=True
@@ -115,6 +115,9 @@ def __(hafs, locale, mo, psf):
                 ),
                 locale.format_string(
                     "%.0f", haf.humid_air_state.t_dew_point, grouping=True
+                ),
+                locale.format_string(
+                    "%.4f", haf.humid_air_state.hum_ratio, grouping=True
                 ),
             )
         )
