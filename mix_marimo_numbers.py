@@ -53,8 +53,6 @@ def __(mo):
 
 @app.cell
 def __():
-    import pprint
-
     import marimo as mo
     from pathvalidate import sanitize_filepath
 
@@ -62,14 +60,14 @@ def __():
     import psychroflow as psf
     from create_reports import create_report_mix_humid_air_flows
 
-    PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
-    pp = PrettyPrinter.pprint
+    import locale
+    locale.setlocale(locale.LC_NUMERIC, 'de-AT.UTF-8')
+
+    pass
     return (
-        PrettyPrinter,
         create_report_mix_humid_air_flows,
+        locale,
         mo,
-        pp,
-        pprint,
         psf,
         pss,
         sanitize_filepath,
@@ -91,32 +89,54 @@ def __(create_report_mix_humid_air_flows, form, hafs, sanitize_filepath):
 
 
 @app.cell
-def __(hafs, mo, psf):
+def __(hafs, locale, mo, psf):
     # create output text
 
-    md_hafs = mo.md("\n\n".join([haf.str_short() for haf in hafs]))
 
-    if 1 <= len(hafs):
+    def haf_string_mo_md(haf):
+        return mo.md(
+            """
+            $V = {} \, m^3/h$ &emsp; $T = {} \,°C$ &emsp; $\phi = {} \, \%$ &emsp; $T_d = {} \, °C$
+            """.format(
+                locale.format_string(
+                    "%.0f", haf.volume_flow * 3600, grouping=True
+                ),
+                locale.format_string(
+                    "%.0f", haf.humid_air_state.t_dry_bulb, grouping=True
+                ),
+                locale.format_string(
+                    "%.0f", haf.humid_air_state.rel_hum * 100, grouping=True
+                ),
+                locale.format_string(
+                    "%.0f", haf.humid_air_state.t_dew_point, grouping=True
+                ),
+            )
+        )
+
+
+    md_hafs = mo.vstack([haf_string_mo_md(haf) for haf in hafs])
+
+    if 0 < len(hafs):
         haf_mix = psf.mix_humid_air_flows(hafs)
 
     md_mix = (
-        mo.md("## Mischungs Luftstrom \n\n **" + haf_mix.str_short() + "**")
-        if 1 <= len(hafs)
+        mo.vstack([mo.md("## Mischungs Luftstrom"), haf_string_mo_md(haf_mix)])
+        if 0 < len(hafs)
         else mo.md("")
     )
 
     md_output = (
         mo.vstack([mo.md("## Eingangs Luftströme"), md_hafs, md_mix])
-        if 1 <= len(hafs)
+        if 0 < len(hafs)
         else mo.md(
             """
             ### Keine Eingänge aktiv
-            
+
             Select Checkbox!
             """
         )
     )
-    return haf_mix, md_hafs, md_mix, md_output
+    return haf_mix, haf_string_mo_md, md_hafs, md_mix, md_output
 
 
 @app.cell
@@ -132,11 +152,12 @@ def __(mo):
 @app.cell
 def __(mo, n_hafs, n_hafs_default):
     # create ui
-    n_hafs_n = n_hafs.value if n_hafs.value else n_hafs_default
+    n_hafs_n = n_hafs.value+1 if n_hafs.value else n_hafs_default+1
 
-    enabled_ticks = mo.ui.array(
-        [mo.ui.checkbox(value=False) for _ in range(n_hafs_n)]
-    )
+    checks = [True] * n_hafs_n
+    checks[-1] = False
+
+    enabled_ticks = mo.ui.array([mo.ui.checkbox(value=i) for i in checks])
 
     inputs_volume_flow = mo.ui.array(
         [
@@ -182,6 +203,7 @@ def __(mo, n_hafs, n_hafs_default):
 
     ui_hafs = mo.vstack([headings_stack, ui_sliders])
     return (
+        checks,
         element_width,
         enabled_ticks,
         headings,
@@ -221,13 +243,6 @@ def __(
                 )
             )
     return hafs, i
-
-
-@app.cell
-def __():
-    s = "asdf"
-    s.center(20)
-    return s,
 
 
 @app.cell

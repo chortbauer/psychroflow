@@ -7,6 +7,8 @@ Created on 2024-01-22 07:30:30
 
 # pylint: disable=unused-import
 
+#%%
+
 import pprint
 import numpy as np
 
@@ -16,6 +18,9 @@ import waterstate as ws
 
 PrettyPrinter = pprint.PrettyPrinter(underscore_numbers=True)
 pp = PrettyPrinter.pprint
+
+
+#%%
 
 # t_range = np.linspace(1,100,20)
 # for t in t_range:
@@ -64,4 +69,11 @@ hafs = []
 # hum_ratio = ps.get_hum_ratio_from_t_dry_bulb_t_wet_bulb(t_dry_bulb,t_wet_bulb,pressure)
 # print(hum_ratio)
 
-has = ps.HumidAirState.from_t_dry_bulb_rel_hum(-50, 1, 8e4)
+has = ps.HumidAirState.from_t_dry_bulb_rel_hum(20, 0.5)
+
+haf = psf.HumidAirFlow(1, has)
+haf
+# %%
+
+haf.at_t_dry_bulb(50,True)
+# %%

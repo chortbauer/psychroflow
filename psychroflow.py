@@ -2,7 +2,7 @@
 """
 psychroflow.py
 
-This module provides classes and functions for calculating flows of humid air and water. 
+This module provides classes and functions for calculating flows of humid air and water.
 
 Unit conventions:
 SI units are used for all physical values except temperatur for which °C is used.
@@ -182,6 +182,46 @@ class HumidAirFlow:
         return HumidAirFlow.from_m_air_m_water_enthalpy_flow(
             self.mass_flow_air, self.mass_flow_water, enthalpy_flow, pressure
         )
+
+    def at_t_dry_bulb(self, t_dry_bulb_target: float = False) -> "HumidAirFlow":
+        """Humid Air Flow heated/cooled to target temperature"""
+
+        enthalpy_added_flow = self.get_enthalpy_to_t_dry_bulb(t_dry_bulb_target)
+
+        return self.add_enthalpy(enthalpy_added_flow)
+
+    def get_enthalpy_to_t_dry_bulb(self, t_dry_bulb_target: float) -> float:
+        """get the enthalpy_flow [W] needed to reach a target relative humidity"""
+
+        def fun(h_t):
+            return self.add_enthalpy(h_t).humid_air_state.t_dry_bulb - t_dry_bulb_target
+
+        has_lower_bound = HumidAirState.from_t_dry_bulb_hum_ratio(
+            self.humid_air_state.t_dew_point,
+            self.humid_air_state.hum_ratio,
+            pressure=self.humid_air_state.pressure,
+        )
+        h_t_lower_bound = (
+            has_lower_bound.moist_air_enthalpy - self.humid_air_state.moist_air_enthalpy
+        ) * self.mass_flow_air
+
+        has_upper_bound = HumidAirState.from_t_dry_bulb_hum_ratio(
+            150,
+            self.humid_air_state.hum_ratio,
+            pressure=self.humid_air_state.pressure,
+        )
+        h_f_upper_bound = (
+            has_upper_bound.moist_air_enthalpy - self.humid_air_state.moist_air_enthalpy
+        ) * self.mass_flow_air
+
+        sol = optimize.root_scalar(
+            fun, method="brentq", bracket=[h_t_lower_bound, h_f_upper_bound]
+        )
+
+        if sol.converged:
+            return sol.root
+
+        raise ValueError("Root not converged: " + sol.flag)
 
     def get_enthalpy_to_rel_hum(self, rel_hum_target: float) -> float:
         """get the enthalpy_flow [W] needed to reach a target relative humidity"""
